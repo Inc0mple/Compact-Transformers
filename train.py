@@ -308,7 +308,7 @@ def main():
 
     if args.log_wandb:
         if has_wandb:
-            wandb.init(project=args.experiment, config=args)
+            wandb.init(project="CV-Project", config=args, name=args.experiment, dir=args.output) 
         else:
             _logger.warning("You've requested to log metrics to wandb but package not found. "
                             "Metrics not being logged to wandb, try `pip install wandb`")
