@@ -371,6 +371,8 @@ def main():
     if args.local_rank == 0:
         _logger.info(
             f'Model {safe_model_name(args.model)} created, param count:{sum([m.numel() for m in model.parameters()])}')
+        if args.log_wandb and has_wandb:
+            wandb.log({"parameter_count": sum([m.numel() for m in model.parameters()])})
 
     data_config = resolve_data_config(vars(args), model=model, verbose=args.local_rank == 0)
 

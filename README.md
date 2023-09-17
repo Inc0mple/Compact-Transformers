@@ -15,9 +15,9 @@
 ```bash
 python train.py data/cifar10 -c configs/datasets/cifar10.yml --model cct_2_3x2_32  --epochs 10 --output result --experiment trial_cct_2_3x2_32 --log-wandb
 
-python train.py cct_2_3x2_32 data/cifar10 -c configs/datasets/cifar10.yml --model  --epochs 300 --output result --experiment full_cct_2_3x2_32 --log-wandb
+python train.py data/cifar10 -c configs/datasets/cifar10.yml --model cct_2_3x2_32  --epochs 300 --output result --experiment full_cct_2_3x2_32 --log-wandb
 
-python train.py cct_custom_model data/cifar10 -c configs/datasets/cifar10.yml --model  --epochs 10 --output result --experiment example_trial_run_custom_model_here --log-wandb
+python train.py data/cifar10 -c configs/datasets/cifar10.yml --model cct_custom_model --epochs 10 --output result --experiment example_trial_run_custom_model_here --log-wandb
 
 ```
 - add `--log-wandb` to log to wandb. Remove if you just want to experiment and not log to wandb.
