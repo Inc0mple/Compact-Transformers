@@ -1,5 +1,6 @@
 from torch.hub import load_state_dict_from_url
 import torch.nn as nn
+import torch
 from .utils.transformers import TransformerClassifier
 from .utils.tokenizer import Tokenizer
 from .utils.helpers import pe_check, fc_check
@@ -143,6 +144,36 @@ class CCT_custom(nn.Module):
         return self.classifier(x)
 
 
+
+class EnsembleCCT(nn.Module):
+    def __init__(self, n_models, aggregation_dim, num_classes=10, **cct_kwargs):
+        super(EnsembleCCT, self).__init__()
+        
+        # Ensure num_classes is consistently passed to the CCT_custom models
+        self.models = nn.ModuleList([CCT_custom(num_classes=num_classes, **cct_kwargs) for _ in range(n_models)])
+        
+        # Adjust the input dimension of the aggregation layer
+        self.aggregation_layer = nn.Linear(n_models * num_classes, aggregation_dim)
+        
+        # Final output layer
+        self.output_layer = nn.Linear(aggregation_dim, num_classes)
+
+    def forward(self, x):
+        # Collect outputs from all CCT_custom models
+        outputs = [model(x) for model in self.models]
+        
+        # Concatenate the outputs
+        concat_outputs = torch.cat(outputs, dim=1)
+        
+        # Pass through the aggregation layer
+        aggregated = self.aggregation_layer(concat_outputs)
+        
+        # Pass through the final output layer
+        out = self.output_layer(aggregated)
+        
+        return out
+
+
 def _cct(arch, pretrained, progress,
          num_layers, num_heads, mlp_ratio, embedding_dim,
          kernel_size=3, stride=None, padding=None,
@@ -204,6 +235,36 @@ def _cct_custom(arch, pretrained, progress,
             raise RuntimeError(f'Variant {arch} does not yet have pretrained weights.')
     return model
 
+def _cct_2_simple_ensemble(arch, pretrained, progress,
+         num_layers, num_heads, mlp_ratio, embedding_dim,
+         kernel_size=3, stride=None, padding=None,
+         positional_embedding='learnable',
+         *args, **kwargs):
+    stride = stride if stride is not None else max(1, (kernel_size // 2) - 1)
+    padding = padding if padding is not None else max(1, (kernel_size // 2))
+    model  = EnsembleCCT(n_models=4, aggregation_dim=40, num_layers=num_layers,
+                num_heads=num_heads,
+                mlp_ratio=mlp_ratio,
+                embedding_dim=embedding_dim,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                *args, **kwargs)
+
+    if pretrained:
+        if arch in model_urls:
+            state_dict = load_state_dict_from_url(model_urls[arch],
+                                                  progress=progress)
+            if positional_embedding == 'learnable':
+                state_dict = pe_check(model, state_dict)
+            elif positional_embedding == 'sine':
+                state_dict['classifier.positional_emb'] = model.state_dict()['classifier.positional_emb']
+            state_dict = fc_check(model, state_dict)
+            model.load_state_dict(state_dict)
+        else:
+            raise RuntimeError(f'Variant {arch} does not yet have pretrained weights.')
+    return model
+
 
 def cct_2(arch, pretrained, progress, *args, **kwargs):
     return _cct(arch, pretrained, progress, num_layers=2, num_heads=2, mlp_ratio=1, embedding_dim=128,
@@ -232,6 +293,10 @@ def cct_14(arch, pretrained, progress, *args, **kwargs):
 
 def cct_custom(arch, pretrained, progress, *args, **kwargs):
     return _cct_custom(arch, pretrained, progress, num_layers=14, num_heads=6, mlp_ratio=3, embedding_dim=384,
+                *args, **kwargs)
+    
+def cct_2_simple_ensemble(arch, pretrained, progress, *args, **kwargs):
+    return _cct_2_simple_ensemble(arch, pretrained, progress, num_layers=2, num_heads=2, mlp_ratio=1, embedding_dim=128,
                 *args, **kwargs)
 
 @register_model
@@ -452,3 +517,13 @@ def cct_custom_model(pretrained=False, progress=False,
                   img_size=img_size, positional_embedding=positional_embedding,
                   num_classes=num_classes,
                   *args, **kwargs)
+
+@register_model
+def cct_2_3x2_32_simple_ensemble(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=10,
+                 *args, **kwargs):
+    return cct_2_simple_ensemble('cct_2_3x2_32_simple_ensemble', pretrained, progress,
+                 kernel_size=3, n_conv_layers=2,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
