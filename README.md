@@ -11,7 +11,7 @@
 
 ## Instructions
 - add `--log-wandb` to log to wandb. Remove if you just want to experiment and not log to wandb.
-- Models (both original and custom) are defined in `src/cct.py` and `src/cvt.py`. Edit the models there.
+- Models (both the ones by the original authors and our custom ones) are defined in `src/cct.py` and `src/cvt.py`. Edit the models there.
 - Configurations for datasets are defined in `configs/`. Define your own config file if you want to use a different set of parameters.
 - `--experiment` is the name of the experiment, which will be the name of the run used to save the model and log to wandb.
 - `--output` saves the model and result to the specified folder in your local machine.
