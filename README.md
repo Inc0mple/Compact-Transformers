@@ -6,7 +6,7 @@
 ## Installation
 
 - Clone this repository
-- Create a new conda environment and do `pip install -r requirements.txt`
+- Create a new conda environment, activate it, and do `pip install -r requirements.txt`
 - Download [cifar10 dataset](https://www.dropbox.com/scl/fi/oj44dqj4mlmzemntj32nv/cifar10.7z?rlkey=o8ncggr8u2gjilyaqof68a1ic&dl=0) and place it in the `data/cifar10` folder.
 
 ## Instructions
