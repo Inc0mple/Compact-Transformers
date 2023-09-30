@@ -283,6 +283,9 @@ parser.add_argument('--torchscript', dest='torchscript', action='store_true',
                     help='convert model torchscript for inference')
 parser.add_argument('--log-wandb', action='store_true', default=False,
                     help='log training and validation metrics to wandb')
+parser.add_argument('--resolution', default=None,  help='Define resolution for cascaded attention module')
+parser.add_argument('--window_resolution', default=None,  help='Define window_resolution for cascaded attention module')
+parser.add_argument('--kernels', default=None, nargs='+', type=int,  help='Define kernels for cascaded attention module')
 
 os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
 def _parse_args():
@@ -350,6 +353,8 @@ def main():
 
     random_seed(args.seed, args.rank)
 
+    print(args.resolution, args.window_resolution, args.kernels)
+    
     model = create_model(
         args.model,
         pretrained=args.pretrained,
@@ -363,7 +368,12 @@ def main():
         bn_momentum=args.bn_momentum,
         bn_eps=args.bn_eps,
         scriptable=args.torchscript,
-        checkpoint_path=args.initial_checkpoint)
+        checkpoint_path=args.initial_checkpoint,
+        resolution=args.resolution,
+        window_resolution=args.window_resolution,
+        kernels=args.kernels,
+        )
+    
     if args.num_classes is None:
         assert hasattr(model, 'num_classes'), 'Model must have `num_classes` attr if not set on cmd line/config.'
         args.num_classes = model.num_classes  # FIXME handle model default vs config num_classes more elegantly
