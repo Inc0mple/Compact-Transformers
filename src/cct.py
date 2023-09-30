@@ -265,7 +265,7 @@ class CCT_custom_DynEmbedTempScaleAttnFactor(nn.Module):
             mlp_ratio=mlp_ratio,
             num_classes=num_classes,
             positional_embedding=positional_embedding,
-            # dim_reduc_factor=dim_reduc_factor
+            dim_reduc_factor=dim_reduc_factor
         )
         
 
