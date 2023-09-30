@@ -1,8 +1,8 @@
 from torch.hub import load_state_dict_from_url
 import torch.nn as nn
 import torch
-from .utils.transformers import TransformerClassifier, TransformerClassifierFactorized
-from .utils.transformers import TransformerClassifierDynEmbedAndFactor, TransformerClassifierDynEmbedTempScaleAttn
+from .utils.transformers import TransformerClassifier, TransformerClassifierDynEmbed
+from .utils.transformers import TransformerClassifierDynEmbedTempScaleAttn, TransformerClassifierDynEmbedTempScaleAttnFactor, TransformerClassifierFactorized
 from .utils.tokenizer import Tokenizer, TokenizerCustom, TokenizerFFT
 from .utils.helpers import pe_check, fc_check
 
@@ -87,8 +87,8 @@ class CCT(nn.Module):
         x = self.tokenizer(x)
         return self.classifier(x)
     
-    
-class CCT_custom(nn.Module):
+
+class CCT_custom_DynEmbed(nn.Module):
     def __init__(self,
                  img_size=224,
                  embedding_dim=768,
@@ -110,7 +110,69 @@ class CCT_custom(nn.Module):
                  positional_embedding='learnable',
                  dim_reduc_factor=2,
                  *args, **kwargs):
-        super(CCT_custom, self).__init__()
+        super(CCT_custom_DynEmbed, self).__init__()
+
+        self.tokenizer = Tokenizer(n_input_channels=n_input_channels,
+                                   n_output_channels=embedding_dim,
+                                   kernel_size=kernel_size,
+                                   stride=stride,
+                                   padding=padding,
+                                   pooling_kernel_size=pooling_kernel_size,
+                                   pooling_stride=pooling_stride,
+                                   pooling_padding=pooling_padding,
+                                   max_pool=True,
+                                   activation=nn.ReLU,
+                                   n_conv_layers=n_conv_layers,
+                                   conv_bias=False)
+
+        # TransformerClassifierCustom2
+        # TransformerClassifierDynEmbedAndFactor
+        self.classifier = TransformerClassifierDynEmbed(
+            sequence_length=self.tokenizer.sequence_length(n_channels=n_input_channels,
+                                                           height=img_size,
+                                                           width=img_size),
+            embedding_dim=embedding_dim,
+            seq_pool=True,
+            dropout=dropout,
+            attention_dropout=attention_dropout,
+            stochastic_depth=stochastic_depth,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            num_classes=num_classes,
+            positional_embedding=positional_embedding,
+            # dim_reduc_factor=dim_reduc_factor
+        )
+        
+
+    def forward(self, x):
+        x = self.tokenizer(x)
+        return self.classifier(x)
+
+    
+class CCT_custom_DynEmbedTempScaleAttn(nn.Module):
+    def __init__(self,
+                 img_size=224,
+                 embedding_dim=768,
+                 n_input_channels=3,
+                 n_conv_layers=1,
+                 kernel_size=7,
+                 stride=2,
+                 padding=3,
+                 pooling_kernel_size=3,
+                 pooling_stride=2,
+                 pooling_padding=1,
+                 dropout=0.,
+                 attention_dropout=0.1,
+                 stochastic_depth=0.1,
+                 num_layers=14,
+                 num_heads=6,
+                 mlp_ratio=4.0,
+                 num_classes=1000,
+                 positional_embedding='learnable',
+                 dim_reduc_factor=2,
+                 *args, **kwargs):
+        super(CCT_custom_DynEmbedTempScaleAttn, self).__init__()
 
         self.tokenizer = Tokenizer(n_input_channels=n_input_channels,
                                    n_output_channels=embedding_dim,
@@ -128,6 +190,68 @@ class CCT_custom(nn.Module):
         # TransformerClassifierCustom2
         # TransformerClassifierDynEmbedAndFactor
         self.classifier = TransformerClassifierDynEmbedTempScaleAttn(
+            sequence_length=self.tokenizer.sequence_length(n_channels=n_input_channels,
+                                                           height=img_size,
+                                                           width=img_size),
+            embedding_dim=embedding_dim,
+            seq_pool=True,
+            dropout=dropout,
+            attention_dropout=attention_dropout,
+            stochastic_depth=stochastic_depth,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            mlp_ratio=mlp_ratio,
+            num_classes=num_classes,
+            positional_embedding=positional_embedding,
+            # dim_reduc_factor=dim_reduc_factor
+        )
+        
+
+    def forward(self, x):
+        x = self.tokenizer(x)
+        return self.classifier(x)
+    
+
+class CCT_custom_DynEmbedTempScaleAttnFactor(nn.Module):
+    def __init__(self,
+                 img_size=224,
+                 embedding_dim=768,
+                 n_input_channels=3,
+                 n_conv_layers=1,
+                 kernel_size=7,
+                 stride=2,
+                 padding=3,
+                 pooling_kernel_size=3,
+                 pooling_stride=2,
+                 pooling_padding=1,
+                 dropout=0.,
+                 attention_dropout=0.1,
+                 stochastic_depth=0.1,
+                 num_layers=14,
+                 num_heads=6,
+                 mlp_ratio=4.0,
+                 num_classes=1000,
+                 positional_embedding='learnable',
+                 dim_reduc_factor=2,
+                 *args, **kwargs):
+        super(CCT_custom_DynEmbedTempScaleAttnFactor, self).__init__()
+
+        self.tokenizer = Tokenizer(n_input_channels=n_input_channels,
+                                   n_output_channels=embedding_dim,
+                                   kernel_size=kernel_size,
+                                   stride=stride,
+                                   padding=padding,
+                                   pooling_kernel_size=pooling_kernel_size,
+                                   pooling_stride=pooling_stride,
+                                   pooling_padding=pooling_padding,
+                                   max_pool=True,
+                                   activation=nn.ReLU,
+                                   n_conv_layers=n_conv_layers,
+                                   conv_bias=False)
+
+        # TransformerClassifierCustom2
+        # TransformerClassifierDynEmbedAndFactor
+        self.classifier = TransformerClassifierDynEmbedTempScaleAttnFactor(
             sequence_length=self.tokenizer.sequence_length(n_channels=n_input_channels,
                                                            height=img_size,
                                                            width=img_size),
@@ -210,14 +334,75 @@ def _cct(arch, pretrained, progress,
     return model
 
 
-def _cct_custom(arch, pretrained, progress,
+def _cct_custom_DynEmbed(arch, pretrained, progress,
          num_layers, num_heads, mlp_ratio, embedding_dim,
          kernel_size=3, stride=None, padding=None,
          positional_embedding='learnable',
          *args, **kwargs):
     stride = stride if stride is not None else max(1, (kernel_size // 2) - 1)
     padding = padding if padding is not None else max(1, (kernel_size // 2))
-    model = CCT_custom(num_layers=num_layers,
+    model = CCT_custom_DynEmbed(num_layers=num_layers,
+                num_heads=num_heads,
+                mlp_ratio=mlp_ratio,
+                embedding_dim=embedding_dim,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                *args, **kwargs)
+
+    if pretrained:
+        if arch in model_urls:
+            state_dict = load_state_dict_from_url(model_urls[arch],
+                                                  progress=progress)
+            if positional_embedding == 'learnable':
+                state_dict = pe_check(model, state_dict)
+            elif positional_embedding == 'sine':
+                state_dict['classifier.positional_emb'] = model.state_dict()['classifier.positional_emb']
+            state_dict = fc_check(model, state_dict)
+            model.load_state_dict(state_dict)
+        else:
+            raise RuntimeError(f'Variant {arch} does not yet have pretrained weights.')
+    return model
+
+
+def _cct_custom_DynEmbedTempScaleAttn(arch, pretrained, progress,
+         num_layers, num_heads, mlp_ratio, embedding_dim,
+         kernel_size=3, stride=None, padding=None,
+         positional_embedding='learnable',
+         *args, **kwargs):
+    stride = stride if stride is not None else max(1, (kernel_size // 2) - 1)
+    padding = padding if padding is not None else max(1, (kernel_size // 2))
+    model = CCT_custom_DynEmbedTempScaleAttn(num_layers=num_layers,
+                num_heads=num_heads,
+                mlp_ratio=mlp_ratio,
+                embedding_dim=embedding_dim,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                *args, **kwargs)
+
+    if pretrained:
+        if arch in model_urls:
+            state_dict = load_state_dict_from_url(model_urls[arch],
+                                                  progress=progress)
+            if positional_embedding == 'learnable':
+                state_dict = pe_check(model, state_dict)
+            elif positional_embedding == 'sine':
+                state_dict['classifier.positional_emb'] = model.state_dict()['classifier.positional_emb']
+            state_dict = fc_check(model, state_dict)
+            model.load_state_dict(state_dict)
+        else:
+            raise RuntimeError(f'Variant {arch} does not yet have pretrained weights.')
+    return model
+
+def _cct_custom_DynEmbedTempScaleAttnFactor(arch, pretrained, progress,
+         num_layers, num_heads, mlp_ratio, embedding_dim,
+         kernel_size=3, stride=None, padding=None,
+         positional_embedding='learnable',
+         *args, **kwargs):
+    stride = stride if stride is not None else max(1, (kernel_size // 2) - 1)
+    padding = padding if padding is not None else max(1, (kernel_size // 2))
+    model = CCT_custom_DynEmbedTempScaleAttnFactor(num_layers=num_layers,
                 num_heads=num_heads,
                 mlp_ratio=mlp_ratio,
                 embedding_dim=embedding_dim,
@@ -294,29 +479,78 @@ def cct_7(arch, pretrained, progress, *args, **kwargs):
 def cct_14(arch, pretrained, progress, *args, **kwargs):
     return _cct(arch, pretrained, progress, num_layers=14, num_heads=6, mlp_ratio=3, embedding_dim=384,
                 *args, **kwargs)
+    
+    
+################## CCT_simple_ensemble ##################################
 
-
-def cct_custom_2(arch, pretrained, progress, *args, **kwargs):
-    return _cct_custom(arch, pretrained, progress, num_layers=2, num_heads=2, mlp_ratio=1, embedding_dim=128,
-                *args, **kwargs)
-    
-def cct_custom_8(arch, pretrained, progress, *args, **kwargs):
-    return _cct_custom(arch, pretrained, progress, num_layers=8, num_heads=4, mlp_ratio=2, embedding_dim=256,
-                *args, **kwargs)
-    
-    
-def cct_custom_7(arch, pretrained, progress, *args, **kwargs):
-    return _cct_custom(arch, pretrained, progress, num_layers=7, num_heads=4, mlp_ratio=2, embedding_dim=256,
-                *args, **kwargs)
-    
-def cct_custom_6(arch, pretrained, progress, *args, **kwargs):
-    return _cct_custom(arch, pretrained, progress, num_layers=6, num_heads=4, mlp_ratio=2, embedding_dim=256,
-                *args, **kwargs)
-    
 def cct_2_simple_ensemble(arch, pretrained, progress, *args, **kwargs):
     return _cct_2_simple_ensemble(arch, pretrained, progress, num_layers=2, num_heads=2, mlp_ratio=1, embedding_dim=128,
                 *args, **kwargs)
 
+
+################## CCT_custom_DynEmbed ##################################
+
+def cct_custom_DynEmbed_2(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbed(arch, pretrained, progress, num_layers=2, num_heads=2, mlp_ratio=1, embedding_dim=128,
+                *args, **kwargs)
+    
+def cct_custom_DynEmbed_8(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbed(arch, pretrained, progress, num_layers=8, num_heads=4, mlp_ratio=2, embedding_dim=256,
+                *args, **kwargs)
+    
+    
+def cct_custom_DynEmbed_7(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbed(arch, pretrained, progress, num_layers=7, num_heads=4, mlp_ratio=2, embedding_dim=256,
+                *args, **kwargs)
+    
+def cct_custom_DynEmbed_6(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbed(arch, pretrained, progress, num_layers=6, num_heads=4, mlp_ratio=2, embedding_dim=256,
+                *args, **kwargs)
+    
+
+
+
+
+################## CCT_custom_DynEmbedTempScaleAttn #####################
+
+def cct_custom_DynEmbedTempScaleAttn_2(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbedTempScaleAttn(arch, pretrained, progress, num_layers=2, num_heads=2, mlp_ratio=1, embedding_dim=128,
+                *args, **kwargs)
+    
+def cct_custom_DynEmbedTempScaleAttn_8(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbedTempScaleAttn(arch, pretrained, progress, num_layers=8, num_heads=4, mlp_ratio=2, embedding_dim=256,
+                *args, **kwargs)
+    
+    
+def cct_custom_DynEmbedTempScaleAttn_7(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbedTempScaleAttn(arch, pretrained, progress, num_layers=7, num_heads=4, mlp_ratio=2, embedding_dim=256,
+                *args, **kwargs)
+    
+def cct_custom_DynEmbedTempScaleAttn_6(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbedTempScaleAttn(arch, pretrained, progress, num_layers=6, num_heads=4, mlp_ratio=2, embedding_dim=256,
+                *args, **kwargs)
+    
+################## CCT_custom_DynEmbedTempScaleAttnFactor #####################
+
+def cct_custom_DynEmbedTempScaleAttnFactor_2(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbedTempScaleAttnFactor(arch, pretrained, progress, num_layers=2, num_heads=2, mlp_ratio=1, embedding_dim=128,
+                *args, **kwargs)
+    
+def cct_custom_DynEmbedTempScaleAttnFactor_8(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbedTempScaleAttnFactor(arch, pretrained, progress, num_layers=8, num_heads=4, mlp_ratio=2, embedding_dim=256,
+                *args, **kwargs)
+    
+    
+def cct_custom_DynEmbedTempScaleAttnFactor_7(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbedTempScaleAttnFactor(arch, pretrained, progress, num_layers=7, num_heads=4, mlp_ratio=2, embedding_dim=256,
+                *args, **kwargs)
+    
+def cct_custom_DynEmbedTempScaleAttnFactor_6(arch, pretrained, progress, *args, **kwargs):
+    return _cct_custom_DynEmbedTempScaleAttnFactor(arch, pretrained, progress, num_layers=6, num_heads=4, mlp_ratio=2, embedding_dim=256,
+                *args, **kwargs)
+    
+
+################## ORIGINAL CCT #####################
 
 @register_model
 def cct_2_3x2_32(pretrained=False, progress=False,
@@ -537,6 +771,8 @@ def cct_14_7x2_384(pretrained=False, progress=False,
                   *args, **kwargs)
 
 
+
+
 @register_model
 def cct_14_7x2_384_fl(pretrained=False, progress=False,
                       img_size=384, positional_embedding='learnable', num_classes=102,
@@ -546,27 +782,10 @@ def cct_14_7x2_384_fl(pretrained=False, progress=False,
                   img_size=img_size, positional_embedding=positional_embedding,
                   num_classes=num_classes,
                   *args, **kwargs)
-    
-    
-@register_model
-def cct_custom_model_2_3x2_32(pretrained=False, progress=False,
-                      img_size=32, positional_embedding='learnable', num_classes=10,
-                      *args, **kwargs):
-    return cct_custom_2('cct_custom_model_2_3x2_32', pretrained, progress,
-                  kernel_size=3, n_conv_layers=2,
-                  img_size=img_size, positional_embedding=positional_embedding,
-                  num_classes=num_classes,
-                  *args, **kwargs)
 
-@register_model
-def cct_custom_model_8_3x1_32(pretrained=False, progress=False,
-                 img_size=32, positional_embedding='learnable', num_classes=10,
-                 *args, **kwargs):
-    return cct_custom_8('cct_custom_model_8_3x1_32', pretrained, progress,
-                 kernel_size=3, n_conv_layers=1,
-                 img_size=img_size, positional_embedding=positional_embedding,
-                 num_classes=num_classes,
-                 *args, **kwargs)
+
+################## CCT_custom_simple_ensemble #####################
+
 
 @register_model
 def cct_2_3x2_32_simple_ensemble(pretrained=False, progress=False,
@@ -579,20 +798,42 @@ def cct_2_3x2_32_simple_ensemble(pretrained=False, progress=False,
                  *args, **kwargs)
 
 
+################## CCT_custom_DynEmbed #####################
+    
 @register_model
-def cct_custom_model_7_3x1_32(pretrained=False, progress=False,
+def cct_DynEmbed_2_3x2_32(pretrained=False, progress=False,
+                      img_size=32, positional_embedding='learnable', num_classes=10,
+                      *args, **kwargs):
+    return cct_custom_DynEmbed_2('cct_DynEmbed_2_3x2_32', pretrained, progress,
+                  kernel_size=3, n_conv_layers=2,
+                  img_size=img_size, positional_embedding=positional_embedding,
+                  num_classes=num_classes,
+                  *args, **kwargs)
+
+@register_model
+def cct_DynEmbed_8_3x1_32(pretrained=False, progress=False,
                  img_size=32, positional_embedding='learnable', num_classes=10,
                  *args, **kwargs):
-    return cct_custom_7('cct_custom_model_7_3x1_32', pretrained, progress,
+    return cct_custom_DynEmbed_8('cct_DynEmbed_8_3x1_32', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+
+@register_model
+def cct_DynEmbed_7_3x1_32(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=10,
+                 *args, **kwargs):
+    return cct_custom_DynEmbed_7('cct_DynEmbed_7_3x1_32', pretrained, progress,
                  kernel_size=3, n_conv_layers=1,
                  img_size=img_size, positional_embedding=positional_embedding,
                  num_classes=num_classes,
                  *args, **kwargs)
 @register_model
-def cct_custom_model_6_3x1_32(pretrained=False, progress=False,
+def cct_DynEmbed_6_3x1_32(pretrained=False, progress=False,
                  img_size=32, positional_embedding='learnable', num_classes=10,
                  *args, **kwargs):
-    return cct_custom_6('cct_custom_model_6_3x1_32', pretrained, progress,
+    return cct_custom_DynEmbed_6('cct_DynEmbed_6_3x1_32', pretrained, progress,
                  kernel_size=3, n_conv_layers=1,
                  img_size=img_size, positional_embedding=positional_embedding,
                  num_classes=num_classes,
@@ -600,30 +841,175 @@ def cct_custom_model_6_3x1_32(pretrained=False, progress=False,
 
 
 @register_model
-def cct_custom_model_2_3x2_32_c100(pretrained=False, progress=False,
+def cct_DynEmbed_2_3x2_32_c100(pretrained=False, progress=False,
                       img_size=32, positional_embedding='learnable', num_classes=100,
                       *args, **kwargs):
-    return cct_custom_2('cct_custom_model_2_3x2_32_c100', pretrained, progress,
+    return cct_custom_DynEmbed_2('cct_DynEmbed_2_3x2_32_c100', pretrained, progress,
                   kernel_size=3, n_conv_layers=2,
                   img_size=img_size, positional_embedding=positional_embedding,
                   num_classes=num_classes,
                   *args, **kwargs)
     
 @register_model
-def cct_custom_model_7_3x1_32_c100(pretrained=False, progress=False,
+def cct_DynEmbed_7_3x1_32_c100(pretrained=False, progress=False,
                  img_size=32, positional_embedding='learnable', num_classes=100,
                  *args, **kwargs):
-    return cct_custom_7('cct_custom_model_7_3x1_32_c100', pretrained, progress,
+    return cct_custom_DynEmbed_7('cct_DynEmbed_7_3x1_32_c100', pretrained, progress,
                  kernel_size=3, n_conv_layers=1,
                  img_size=img_size, positional_embedding=positional_embedding,
                  num_classes=num_classes,
                  *args, **kwargs)
 @register_model
-def cct_custom_model_6_3x1_32_c100(pretrained=False, progress=False,
+def cct_DynEmbed_6_3x1_32_c100(pretrained=False, progress=False,
                  img_size=32, positional_embedding='learnable', num_classes=100,
                  *args, **kwargs):
-    return cct_custom_6('cct_custom_model_6_3x1_32_c100', pretrained, progress,
+    return cct_custom_DynEmbed_6('cct_DynEmbed_6_3x1_32_c100', pretrained, progress,
                  kernel_size=3, n_conv_layers=1,
                  img_size=img_size, positional_embedding=positional_embedding,
                  num_classes=num_classes,
                  *args, **kwargs)
+
+
+################## CCT_custom_DynEmbedTempScaleAttn #####################
+    
+@register_model
+def cct_DynEmbedTempScaleAttn_2_3x2_32(pretrained=False, progress=False,
+                      img_size=32, positional_embedding='learnable', num_classes=10,
+                      *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttn_2('cct_DynEmbedTempScaleAttn_2_3x2_32', pretrained, progress,
+                  kernel_size=3, n_conv_layers=2,
+                  img_size=img_size, positional_embedding=positional_embedding,
+                  num_classes=num_classes,
+                  *args, **kwargs)
+
+@register_model
+def cct_DynEmbedTempScaleAttn_8_3x1_32(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=10,
+                 *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttn_8('cct_DynEmbedTempScaleAttn_8_3x1_32', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+
+@register_model
+def cct_DynEmbedTempScaleAttn_7_3x1_32(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=10,
+                 *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttn_7('cct_DynEmbedTempScaleAttn_7_3x1_32', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+@register_model
+def cct_DynEmbedTempScaleAttn_6_3x1_32(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=10,
+                 *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttn_6('cct_DynEmbedTempScaleAttn_6_3x1_32', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+
+
+@register_model
+def cct_DynEmbedTempScaleAttn_2_3x2_32_c100(pretrained=False, progress=False,
+                      img_size=32, positional_embedding='learnable', num_classes=100,
+                      *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttn_2('cct_DynEmbedTempScaleAttn_2_3x2_32_c100', pretrained, progress,
+                  kernel_size=3, n_conv_layers=2,
+                  img_size=img_size, positional_embedding=positional_embedding,
+                  num_classes=num_classes,
+                  *args, **kwargs)
+    
+@register_model
+def cct_DynEmbedTempScaleAttn_7_3x1_32_c100(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=100,
+                 *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttn_7('cct_DynEmbedTempScaleAttn_7_3x1_32_c100', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+@register_model
+def cct_DynEmbedTempScaleAttn_6_3x1_32_c100(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=100,
+                 *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttn_6('cct_DynEmbedTempScaleAttn_6_3x1_32_c100', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+    
+
+################## CCT_custom_DynEmbedTempScaleAttnFactor #####################
+    
+@register_model
+def cct_DynEmbedTempScaleAttnFactor_2_3x2_32(pretrained=False, progress=False,
+                      img_size=32, positional_embedding='learnable', num_classes=10,
+                      *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttnFactor_2('cct_DynEmbedTempScaleAttnFactor_2_3x2_32', pretrained, progress,
+                  kernel_size=3, n_conv_layers=2,
+                  img_size=img_size, positional_embedding=positional_embedding,
+                  num_classes=num_classes,
+                  *args, **kwargs)
+
+@register_model
+def cct_DynEmbedTempScaleAttnFactor_8_3x1_32(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=10,
+                 *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttnFactor_8('cct_DynEmbedTempScaleAttnFactor_8_3x1_32', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+
+@register_model
+def cct_DynEmbedTempScaleAttnFactor_7_3x1_32(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=10,
+                 *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttnFactor_7('cct_DynEmbedTempScaleAttnFactor_7_3x1_32', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+@register_model
+def cct_DynEmbedTempScaleAttnFactor_6_3x1_32(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=10,
+                 *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttnFactor_6('cct_DynEmbedTempScaleAttnFactor_6_3x1_32', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+
+
+@register_model
+def cct_DynEmbedTempScaleAttnFactor_2_3x2_32_c100(pretrained=False, progress=False,
+                      img_size=32, positional_embedding='learnable', num_classes=100,
+                      *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttnFactor_2('cct_DynEmbedTempScaleAttnFactor_2_3x2_32_c100', pretrained, progress,
+                  kernel_size=3, n_conv_layers=2,
+                  img_size=img_size, positional_embedding=positional_embedding,
+                  num_classes=num_classes,
+                  *args, **kwargs)
+    
+@register_model
+def cct_DynEmbedTempScaleAttnFactor_7_3x1_32_c100(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=100,
+                 *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttnFactor_7('cct_DynEmbedTempScaleAttnFactor_7_3x1_32_c100', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+@register_model
+def cct_DynEmbedTempScaleAttnFactor_6_3x1_32_c100(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=100,
+                 *args, **kwargs):
+    return cct_custom_DynEmbedTempScaleAttnFactor_6('cct_DynEmbedTempScaleAttnFactor_6_3x1_32_c100', pretrained, progress,
+                 kernel_size=3, n_conv_layers=1,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
+    
