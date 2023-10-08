@@ -796,6 +796,16 @@ def cct_2_3x2_32_simple_ensemble(pretrained=False, progress=False,
                  img_size=img_size, positional_embedding=positional_embedding,
                  num_classes=num_classes,
                  *args, **kwargs)
+    
+@register_model
+def cct_2_3x2_32_simple_ensemble_c100(pretrained=False, progress=False,
+                 img_size=32, positional_embedding='learnable', num_classes=100,
+                 *args, **kwargs):
+    return cct_2_simple_ensemble('cct_2_3x2_32_simple_ensemble_c100', pretrained, progress,
+                 kernel_size=3, n_conv_layers=2,
+                 img_size=img_size, positional_embedding=positional_embedding,
+                 num_classes=num_classes,
+                 *args, **kwargs)
 
 
 ################## CCT_custom_DynEmbed #####################
