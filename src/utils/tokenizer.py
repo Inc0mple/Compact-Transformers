@@ -181,6 +181,82 @@ class DepthwiseSeparableConv2d(nn.Module):
         x = self.depthwise(x)
         x = self.pointwise(x)
         return x
+    
+# Added SEBlock to the Tokenizer
+class TokenizerSE(nn.Module):
+    def __init__(self,
+                 kernel_size, stride, padding,
+                 pooling_kernel_size=3, pooling_stride=2, pooling_padding=1,
+                 n_conv_layers=1,
+                 n_input_channels=3,
+                 n_output_channels=64,
+                 in_planes=64,
+                 activation=None,
+                 max_pool=True,
+                 conv_bias=False):
+        super(Tokenizer, self).__init__()
+
+        n_filter_list = [n_input_channels] + \
+                        [in_planes for _ in range(n_conv_layers - 1)] + \
+                        [n_output_channels]
+
+        layers = []
+        for i in range(n_conv_layers):
+            layers.append(nn.Conv2d(n_filter_list[i], n_filter_list[i + 1],
+                                    kernel_size=(kernel_size, kernel_size),
+                                    stride=(stride, stride),
+                                    padding=(padding, padding), bias=conv_bias))
+            layers.append(SEBlock(n_filter_list[i + 1]))
+            if activation:
+                layers.append(activation())
+            if max_pool:
+                layers.append(nn.MaxPool2d(kernel_size=pooling_kernel_size,
+                                           stride=pooling_stride,
+                                           padding=pooling_padding))
+                
+        self.conv_layers = nn.Sequential(*layers)
+        self.flattener = nn.Flatten(2, 3)
+        self.apply(self.init_weight)
+
+    def sequence_length(self, n_channels=3, height=224, width=224):
+        return self.forward(torch.zeros((1, n_channels, height, width))).shape[1]
+
+    def forward(self, x):
+        return self.flattener(self.conv_layers(x)).transpose(-2, -1)
+
+    @staticmethod
+    def init_weight(m):
+        if isinstance(m, nn.Conv2d):
+            nn.init.kaiming_normal_(m.weight)
+            
+            
+class SEBlock(nn.Module):
+    def __init__(self, in_channels, reduction_ratio=16):
+        super(SEBlock, self).__init__()
+        
+        # Number of channels in the bottleneck layer
+        self.bottleneck_channels = in_channels // reduction_ratio
+        
+        # Squeeze operation is global average pooling
+        # Excitation operation is two dense layers
+        self.excitation = nn.Sequential(
+            nn.Linear(in_channels, self.bottleneck_channels),
+            nn.ReLU(),
+            nn.Linear(self.bottleneck_channels, in_channels),
+            nn.Sigmoid()
+        )
+        
+    def forward(self, x):
+        # Squeeze
+        pooled = F.adaptive_avg_pool2d(x, 1).squeeze(-1).squeeze(-1)
+        
+        # Excitation
+        weights = self.excitation(pooled).unsqueeze(-1).unsqueeze(-1)
+        
+        # Scale the input by the learned weights
+        return x * weights
+
+
 
 # Replace the Conv2d in the Tokenizer with DepthwiseSeparableConv2d
 class TokenizerCustom(nn.Module):
