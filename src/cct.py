@@ -489,7 +489,7 @@ def _cct_2_simple_ensemble(arch, pretrained, progress,
          *args, **kwargs):
     stride = stride if stride is not None else max(1, (kernel_size // 2) - 1)
     padding = padding if padding is not None else max(1, (kernel_size // 2))
-    model  = EnsembleCCT(n_models=10, aggregation_dim=100, num_layers=num_layers,
+    model  = EnsembleCCT(n_models=4, aggregation_dim=40, num_layers=num_layers,
                 num_heads=num_heads,
                 mlp_ratio=mlp_ratio,
                 embedding_dim=embedding_dim,
