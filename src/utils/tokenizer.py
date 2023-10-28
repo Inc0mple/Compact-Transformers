@@ -194,7 +194,7 @@ class TokenizerSE(nn.Module):
                  activation=None,
                  max_pool=True,
                  conv_bias=False):
-        super(Tokenizer, self).__init__()
+        super(TokenizerSE, self).__init__()
 
         n_filter_list = [n_input_channels] + \
                         [in_planes for _ in range(n_conv_layers - 1)] + \

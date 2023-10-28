@@ -383,7 +383,8 @@ def main():
             f'Model {safe_model_name(args.model)} created, param count:{sum([m.numel() for m in model.parameters()])}')
         if args.log_wandb and has_wandb:
             wandb.log({"parameter_count": sum([m.numel() for m in model.parameters()])})
-
+    print(sum([m.numel() for m in model.parameters()]))
+    print(model)
     data_config = resolve_data_config(vars(args), model=model, verbose=args.local_rank == 0)
 
     # setup augmentation batch splits for contrastive loss or split bn

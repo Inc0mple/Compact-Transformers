@@ -324,7 +324,7 @@ class CCT_SETok(nn.Module):
                  num_classes=1000,
                  positional_embedding='learnable',
                  *args, **kwargs):
-        super(CCT, self).__init__()
+        super(CCT_SETok, self).__init__()
 
         self.tokenizer = TokenizerSE(n_input_channels=n_input_channels,
                                    n_output_channels=embedding_dim,
@@ -519,7 +519,7 @@ def _cct_custom_SETok(arch, pretrained, progress,
          *args, **kwargs):
     stride = stride if stride is not None else max(1, (kernel_size // 2) - 1)
     padding = padding if padding is not None else max(1, (kernel_size // 2))
-    model = CCT(num_layers=num_layers,
+    model = CCT_SETok(num_layers=num_layers,
                 num_heads=num_heads,
                 mlp_ratio=mlp_ratio,
                 embedding_dim=embedding_dim,
