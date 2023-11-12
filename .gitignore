@@ -1,6 +1,7 @@
 data
 wandb
 result
+result_final
 __pycache__/
 *.py[cod]
 *.pyo
