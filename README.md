@@ -1,6 +1,6 @@
 # 50.035 Computer Vision Project Research Track: Compact Vision Transformers for Classification
 
-## Report | Slides | [Original Repository](https://github.com/SHI-Labs/Compact-Transformers)
+## [Report](https://www.overleaf.com/read/dqhdgdmkscss#0ed486) | [Slides](https://docs.google.com/presentation/d/1CdZ7o3Qf2QUQekxvExUrZ1s8naiJwibceDVR7DyjQZ0/edit?usp=sharing) | [Original Repository](https://github.com/SHI-Labs/Compact-Transformers)
 
 ## Group Members
 Bryan Tan (1004318) <br>
@@ -18,20 +18,28 @@ Jared Lim (1005200) <br>
 
 ## Important Files
 
-1. `train.py` - main training script
-2. `src/cct.py`
-3. `src/utils/transformers.py`
-4. `src/utils/tokenizer.py`
-5. `configs/custom/cifar10_no_amp.yml` and `configs/custom/cifar100_no_amp.yml`
-6. `macs_counter.ipynb`
+1. `train.py` - main training script; largely unchanged from the original repository
+2. `viz_eval.ipynb` - notebook to visualise and evaluate results
+3. `src/cct.py` - contains the original and custom CCT model initialisation functions
+4. `src/utils/transformers.py` - contains the original and custom modules used in the CCT model
+5. `src/utils/tokenizer.py` - contains the original and custom tokeniser functions
+6. `configs/custom/cifar10_no_amp.yml` and `configs/custom/cifar100_no_amp.yml` - contains the config for all the evaluated models
+7. `macs_counter.ipynb` - notebook to calculate the number of parameters and MACs of the models
+
+## Visualisation/Evaluation
+- Download the 8GB [results file here](https://drive.google.com/file/d/1PfQ78J8LvG0ptWzOiBanSNpcqyj8WeZa/view?usp=sharing) and unzip `result_final.7z`. Place the `result_final` folder in the root directory of this repository. This folder contains the results and checkpoints of all the models we trained.
+- Run `viz_eval.ipynb` to visualise and evaluate the results.
+
 
 ## Training
 
-To train a model, run `python train.py <path to dataset> -c <path to config file> --model <model name> --epochs <number of epochs> --output <path to output folder> --experiment <name of experiment> --log-wandb`
+To train a model, run `python train.py <path to dataset> -c <path to config file> --model <model name> --epochs <number of epochs> --output <path to output folder> --experiment <name of experiment> --log-wandb` <br>
+
+Models are defined in `src/cct.py`. <br>
 
 ### Instructions
 - add `--log-wandb` to log to wandb. Remove if you just want to experiment and not log to wandb.
-- Models (both the ones by the original authors and our custom ones) are defined in `src/cct.py` and `src/cvt.py`. Edit the models there.
+- Models (both the ones by the original authors and our custom ones) are defined in `src/cct.py`. Edit the models there.
 - Configurations for datasets are defined in `configs/`. Define your own config file if you want to use a different set of parameters.
 - `--experiment` is the name of the experiment, which will be the name of the run used to save the model and log to wandb.
 - `--output` saves the model and result to the specified folder in your local machine.
@@ -46,15 +54,6 @@ python train.py data/cifar10 -c configs/datasets/cifar10.yml --model cct_2_3x2_3
 python train.py data/cifar10 -c configs/datasets/cifar10.yml --model cct_custom_model --epochs 10 --output result --experiment example_trial_run_custom_model_here --log-wandb
 ```
 
-## Visualisation/Evaluation
-- Download the 8GB [results file here](https://drive.google.com/file/d/1PfQ78J8LvG0ptWzOiBanSNpcqyj8WeZa/view?usp=sharing) and unzip `result_final.7z`. Place the `result_final` folder in the root directory of this repository. This folder contains the results and checkpoints of all the models we trained.
-- 
+### Acknowledgements
+We thank Prof. Ngai Mann and Prof. Jun Liu for their guidance and advice throughout the project. We also thank the original authors of the CCT paper for their open-source code.
 
-
-
-## Instructions
-
-
-
-
-```
