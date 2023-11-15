@@ -1,8 +1,18 @@
 import torch
-from torch.nn import Module, ModuleList, Linear, Dropout, LayerNorm, Identity, Parameter, init
+from torch.nn import (
+    Module,
+    ModuleList,
+    Linear,
+    Dropout,
+    LayerNorm,
+    Identity,
+    Parameter,
+    init,
+)
 import torch.nn.functional as F
 from .stochastic_depth import DropPath
 import itertools
+
 
 class Attention(Module):
     """
@@ -14,7 +24,7 @@ class Attention(Module):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // self.num_heads
-        self.scale = head_dim ** -0.5
+        self.scale = head_dim**-0.5
 
         self.qkv = Linear(dim, dim * 3, bias=False)
         self.attn_drop = Dropout(attention_dropout)
@@ -23,7 +33,11 @@ class Attention(Module):
 
     def forward(self, x):
         B, N, C = x.shape
-        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        qkv = (
+            self.qkv(x)
+            .reshape(B, N, 3, self.num_heads, C // self.num_heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
@@ -41,7 +55,7 @@ class MaskedAttention(Module):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // self.num_heads
-        self.scale = head_dim ** -0.5
+        self.scale = head_dim**-0.5
 
         self.qkv = Linear(dim, dim * 3, bias=False)
         self.attn_drop = Dropout(attention_dropout)
@@ -50,14 +64,18 @@ class MaskedAttention(Module):
 
     def forward(self, x, mask=None):
         B, N, C = x.shape
-        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        qkv = (
+            self.qkv(x)
+            .reshape(B, N, 3, self.num_heads, C // self.num_heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
 
         if mask is not None:
             mask_value = -torch.finfo(attn.dtype).max
-            assert mask.shape[-1] == attn.shape[-1], 'mask has incorrect dimensions'
+            assert mask.shape[-1] == attn.shape[-1], "mask has incorrect dimensions"
             mask = mask[:, None, :] * mask[:, :, None]
             mask = mask.unsqueeze(1).repeat(1, self.num_heads, 1, 1)
             attn.masked_fill_(~mask, mask_value)
@@ -76,12 +94,23 @@ class TransformerEncoderLayer(Module):
     Inspired by torch.nn.TransformerEncoderLayer and timm.
     """
 
-    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
-                 attention_dropout=0.1, drop_path_rate=0.1):
+    def __init__(
+        self,
+        d_model,
+        nhead,
+        dim_feedforward=2048,
+        dropout=0.1,
+        attention_dropout=0.1,
+        drop_path_rate=0.1,
+    ):
         super(TransformerEncoderLayer, self).__init__()
         self.pre_norm = LayerNorm(d_model)
-        self.self_attn = Attention(dim=d_model, num_heads=nhead,
-                                   attention_dropout=attention_dropout, projection_dropout=dropout)
+        self.self_attn = Attention(
+            dim=d_model,
+            num_heads=nhead,
+            attention_dropout=attention_dropout,
+            projection_dropout=dropout,
+        )
 
         self.linear1 = Linear(d_model, dim_feedforward)
         self.dropout1 = Dropout(dropout)
@@ -106,12 +135,23 @@ class MaskedTransformerEncoderLayer(Module):
     Inspired by torch.nn.TransformerEncoderLayer and timm.
     """
 
-    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
-                 attention_dropout=0.1, drop_path_rate=0.1):
+    def __init__(
+        self,
+        d_model,
+        nhead,
+        dim_feedforward=2048,
+        dropout=0.1,
+        attention_dropout=0.1,
+        drop_path_rate=0.1,
+    ):
         super(MaskedTransformerEncoderLayer, self).__init__()
         self.pre_norm = LayerNorm(d_model)
-        self.self_attn = MaskedAttention(dim=d_model, num_heads=nhead,
-                                         attention_dropout=attention_dropout, projection_dropout=dropout)
+        self.self_attn = MaskedAttention(
+            dim=d_model,
+            num_heads=nhead,
+            attention_dropout=attention_dropout,
+            projection_dropout=dropout,
+        )
 
         self.linear1 = Linear(d_model, dim_feedforward)
         self.dropout1 = Dropout(dropout)
@@ -132,57 +172,75 @@ class MaskedTransformerEncoderLayer(Module):
 
 
 class TransformerClassifier(Module):
-    def __init__(self,
-                 seq_pool=True,
-                 embedding_dim=768,
-                 num_layers=12,
-                 num_heads=12,
-                 mlp_ratio=4.0,
-                 num_classes=1000,
-                 dropout=0.1,
-                 attention_dropout=0.1,
-                 stochastic_depth=0.1,
-                 positional_embedding='learnable',
-                 sequence_length=None):
+    def __init__(
+        self,
+        seq_pool=True,
+        embedding_dim=768,
+        num_layers=12,
+        num_heads=12,
+        mlp_ratio=4.0,
+        num_classes=1000,
+        dropout=0.1,
+        attention_dropout=0.1,
+        stochastic_depth=0.1,
+        positional_embedding="learnable",
+        sequence_length=None,
+    ):
         super().__init__()
-        positional_embedding = positional_embedding if \
-            positional_embedding in ['sine', 'learnable', 'none'] else 'sine'
+        positional_embedding = (
+            positional_embedding
+            if positional_embedding in ["sine", "learnable", "none"]
+            else "sine"
+        )
         dim_feedforward = int(embedding_dim * mlp_ratio)
         self.embedding_dim = embedding_dim
         self.sequence_length = sequence_length
         self.seq_pool = seq_pool
         self.num_tokens = 0
 
-        assert sequence_length is not None or positional_embedding == 'none', \
-            f"Positional embedding is set to {positional_embedding} and" \
+        assert sequence_length is not None or positional_embedding == "none", (
+            f"Positional embedding is set to {positional_embedding} and"
             f" the sequence length was not specified."
+        )
 
         if not seq_pool:
             sequence_length += 1
-            self.class_emb = Parameter(torch.zeros(1, 1, self.embedding_dim),
-                                       requires_grad=True)
+            self.class_emb = Parameter(
+                torch.zeros(1, 1, self.embedding_dim), requires_grad=True
+            )
             self.num_tokens = 1
         else:
             self.attention_pool = Linear(self.embedding_dim, 1)
 
-        if positional_embedding != 'none':
-            if positional_embedding == 'learnable':
-                self.positional_emb = Parameter(torch.zeros(1, sequence_length, embedding_dim),
-                                                requires_grad=True)
+        if positional_embedding != "none":
+            if positional_embedding == "learnable":
+                self.positional_emb = Parameter(
+                    torch.zeros(1, sequence_length, embedding_dim), requires_grad=True
+                )
                 init.trunc_normal_(self.positional_emb, std=0.2)
             else:
-                self.positional_emb = Parameter(self.sinusoidal_embedding(sequence_length, embedding_dim),
-                                                requires_grad=False)
+                self.positional_emb = Parameter(
+                    self.sinusoidal_embedding(sequence_length, embedding_dim),
+                    requires_grad=False,
+                )
         else:
             self.positional_emb = None
 
         self.dropout = Dropout(p=dropout)
         dpr = [x.item() for x in torch.linspace(0, stochastic_depth, num_layers)]
-        self.blocks = ModuleList([
-            TransformerEncoderLayer(d_model=embedding_dim, nhead=num_heads,
-                                    dim_feedforward=dim_feedforward, dropout=dropout,
-                                    attention_dropout=attention_dropout, drop_path_rate=dpr[i])
-            for i in range(num_layers)])
+        self.blocks = ModuleList(
+            [
+                TransformerEncoderLayer(
+                    d_model=embedding_dim,
+                    nhead=num_heads,
+                    dim_feedforward=dim_feedforward,
+                    dropout=dropout,
+                    attention_dropout=attention_dropout,
+                    drop_path_rate=dpr[i],
+                )
+                for i in range(num_layers)
+            ]
+        )
         self.norm = LayerNorm(embedding_dim)
 
         self.fc = Linear(embedding_dim, num_classes)
@@ -190,7 +248,9 @@ class TransformerClassifier(Module):
 
     def forward(self, x):
         if self.positional_emb is None and x.size(1) < self.sequence_length:
-            x = F.pad(x, (0, 0, 0, self.n_channels - x.size(1)), mode='constant', value=0)
+            x = F.pad(
+                x, (0, 0, 0, self.n_channels - x.size(1)), mode="constant", value=0
+            )
 
         if not self.seq_pool:
             cls_token = self.class_emb.expand(x.shape[0], -1, -1)
@@ -206,7 +266,9 @@ class TransformerClassifier(Module):
         x = self.norm(x)
 
         if self.seq_pool:
-            x = torch.matmul(F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x).squeeze(-2)
+            x = torch.matmul(
+                F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x
+            ).squeeze(-2)
         else:
             x = x[:, 0]
 
@@ -216,7 +278,7 @@ class TransformerClassifier(Module):
     @staticmethod
     def init_weight(m):
         if isinstance(m, Linear):
-            init.trunc_normal_(m.weight, std=.02)
+            init.trunc_normal_(m.weight, std=0.02)
             if isinstance(m, Linear) and m.bias is not None:
                 init.constant_(m.bias, 0)
         elif isinstance(m, LayerNorm):
@@ -225,69 +287,90 @@ class TransformerClassifier(Module):
 
     @staticmethod
     def sinusoidal_embedding(n_channels, dim):
-        pe = torch.FloatTensor([[p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
-                                for p in range(n_channels)])
+        pe = torch.FloatTensor(
+            [
+                [p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
+                for p in range(n_channels)
+            ]
+        )
         pe[:, 0::2] = torch.sin(pe[:, 0::2])
         pe[:, 1::2] = torch.cos(pe[:, 1::2])
         return pe.unsqueeze(0)
 
 
 class MaskedTransformerClassifier(Module):
-    def __init__(self,
-                 seq_pool=True,
-                 embedding_dim=768,
-                 num_layers=12,
-                 num_heads=12,
-                 mlp_ratio=4.0,
-                 num_classes=1000,
-                 dropout=0.1,
-                 attention_dropout=0.1,
-                 stochastic_depth=0.1,
-                 positional_embedding='sine',
-                 seq_len=None,
-                 *args, **kwargs):
+    def __init__(
+        self,
+        seq_pool=True,
+        embedding_dim=768,
+        num_layers=12,
+        num_heads=12,
+        mlp_ratio=4.0,
+        num_classes=1000,
+        dropout=0.1,
+        attention_dropout=0.1,
+        stochastic_depth=0.1,
+        positional_embedding="sine",
+        seq_len=None,
+        *args,
+        **kwargs,
+    ):
         super().__init__()
-        positional_embedding = positional_embedding if \
-            positional_embedding in ['sine', 'learnable', 'none'] else 'sine'
+        positional_embedding = (
+            positional_embedding
+            if positional_embedding in ["sine", "learnable", "none"]
+            else "sine"
+        )
         dim_feedforward = int(embedding_dim * mlp_ratio)
         self.embedding_dim = embedding_dim
         self.seq_len = seq_len
         self.seq_pool = seq_pool
         self.num_tokens = 0
 
-        assert seq_len is not None or positional_embedding == 'none', \
-            f"Positional embedding is set to {positional_embedding} and" \
+        assert seq_len is not None or positional_embedding == "none", (
+            f"Positional embedding is set to {positional_embedding} and"
             f" the sequence length was not specified."
+        )
 
         if not seq_pool:
             seq_len += 1
-            self.class_emb = Parameter(torch.zeros(1, 1, self.embedding_dim),
-                                       requires_grad=True)
+            self.class_emb = Parameter(
+                torch.zeros(1, 1, self.embedding_dim), requires_grad=True
+            )
             self.num_tokens = 1
         else:
             self.attention_pool = Linear(self.embedding_dim, 1)
 
-        if positional_embedding != 'none':
-            if positional_embedding == 'learnable':
+        if positional_embedding != "none":
+            if positional_embedding == "learnable":
                 seq_len += 1  # padding idx
-                self.positional_emb = Parameter(torch.zeros(1, seq_len, embedding_dim),
-                                                requires_grad=True)
+                self.positional_emb = Parameter(
+                    torch.zeros(1, seq_len, embedding_dim), requires_grad=True
+                )
                 init.trunc_normal_(self.positional_emb, std=0.2)
             else:
-                self.positional_emb = Parameter(self.sinusoidal_embedding(seq_len,
-                                                                          embedding_dim,
-                                                                          padding_idx=True),
-                                                requires_grad=False)
+                self.positional_emb = Parameter(
+                    self.sinusoidal_embedding(seq_len, embedding_dim, padding_idx=True),
+                    requires_grad=False,
+                )
         else:
             self.positional_emb = None
 
         self.dropout = Dropout(p=dropout)
         dpr = [x.item() for x in torch.linspace(0, stochastic_depth, num_layers)]
-        self.blocks = ModuleList([
-            MaskedTransformerEncoderLayer(d_model=embedding_dim, nhead=num_heads,
-                                          dim_feedforward=dim_feedforward, dropout=dropout,
-                                          attention_dropout=attention_dropout, drop_path_rate=dpr[i])
-            for i in range(num_layers)])
+        self.blocks = ModuleList(
+            [
+                MaskedTransformerEncoderLayer(
+                    d_model=embedding_dim,
+                    nhead=num_heads,
+                    dim_feedforward=dim_feedforward,
+                    dropout=dropout,
+                    attention_dropout=attention_dropout,
+                    drop_path_rate=dpr[i],
+                )
+                for i in range(num_layers)
+            ]
+        )
         self.norm = LayerNorm(embedding_dim)
 
         self.fc = Linear(embedding_dim, num_classes)
@@ -295,14 +378,22 @@ class MaskedTransformerClassifier(Module):
 
     def forward(self, x, mask=None):
         if self.positional_emb is None and x.size(1) < self.seq_len:
-            x = F.pad(x, (0, 0, 0, self.n_channels - x.size(1)), mode='constant', value=0)
+            x = F.pad(
+                x, (0, 0, 0, self.n_channels - x.size(1)), mode="constant", value=0
+            )
 
         if not self.seq_pool:
             cls_token = self.class_emb.expand(x.shape[0], -1, -1)
             x = torch.cat((cls_token, x), dim=1)
             if mask is not None:
-                mask = torch.cat([torch.ones(size=(mask.shape[0], 1), device=mask.device), mask.float()], dim=1)
-                mask = (mask > 0)
+                mask = torch.cat(
+                    [
+                        torch.ones(size=(mask.shape[0], 1), device=mask.device),
+                        mask.float(),
+                    ],
+                    dim=1,
+                )
+                mask = mask > 0
 
         if self.positional_emb is not None:
             x += self.positional_emb
@@ -314,7 +405,9 @@ class MaskedTransformerClassifier(Module):
         x = self.norm(x)
 
         if self.seq_pool:
-            x = torch.matmul(F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x).squeeze(-2)
+            x = torch.matmul(
+                F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x
+            ).squeeze(-2)
         else:
             x = x[:, 0]
 
@@ -324,7 +417,7 @@ class MaskedTransformerClassifier(Module):
     @staticmethod
     def init_weight(m):
         if isinstance(m, Linear):
-            init.trunc_normal_(m.weight, std=.02)
+            init.trunc_normal_(m.weight, std=0.02)
             if isinstance(m, Linear) and m.bias is not None:
                 init.constant_(m.bias, 0)
         elif isinstance(m, LayerNorm):
@@ -333,8 +426,12 @@ class MaskedTransformerClassifier(Module):
 
     @staticmethod
     def sinusoidal_embedding(n_channels, dim, padding_idx=False):
-        pe = torch.FloatTensor([[p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
-                                for p in range(n_channels)])
+        pe = torch.FloatTensor(
+            [
+                [p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
+                for p in range(n_channels)
+            ]
+        )
         pe[:, 0::2] = torch.sin(pe[:, 0::2])
         pe[:, 1::2] = torch.cos(pe[:, 1::2])
         pe = pe.unsqueeze(0)
@@ -346,14 +443,27 @@ class MaskedTransformerClassifier(Module):
 ###################################
 # CLASSES BELOW ARE NOT FROM ORIGINAL CODE
 ###################################
-    
+
+
 class TransformerEncoderLayerFactorized(Module):
-    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
-                 attention_dropout=0.1, drop_path_rate=0.1, dim_reduc_factor=2):
+    def __init__(
+        self,
+        d_model,
+        nhead,
+        dim_feedforward=2048,
+        dropout=0.1,
+        attention_dropout=0.1,
+        drop_path_rate=0.1,
+        dim_reduc_factor=2,
+    ):
         super(TransformerEncoderLayerFactorized, self).__init__()
         self.pre_norm = LayerNorm(d_model)
-        self.self_attn = Attention(dim=d_model, num_heads=nhead,
-                                   attention_dropout=attention_dropout, projection_dropout=dropout)
+        self.self_attn = Attention(
+            dim=d_model,
+            num_heads=nhead,
+            attention_dropout=attention_dropout,
+            projection_dropout=dropout,
+        )
 
         # Original:
         # self.linear1 = Linear(d_model, dim_feedforward)
@@ -361,15 +471,14 @@ class TransformerEncoderLayerFactorized(Module):
         # self.norm1 = LayerNorm(d_model)
         # self.linear2 = Linear(dim_feedforward, d_model)
         # self.dropout2 = Dropout(dropout)
-        
+
         # Factorized feedforward layers
         self.linear1 = Linear(d_model, d_model // dim_reduc_factor)
         self.dropout1 = Dropout(dropout)
         self.norm1 = LayerNorm(d_model)
         self.linear2 = Linear(d_model // dim_reduc_factor, dim_feedforward)
         self.linear3 = Linear(dim_feedforward, d_model)
-        
-        
+
         self.dropout2 = Dropout(dropout)
 
         self.drop_path = DropPath(drop_path_rate) if drop_path_rate > 0 else Identity()
@@ -379,25 +488,40 @@ class TransformerEncoderLayerFactorized(Module):
     def forward(self, src: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         src = src + self.drop_path(self.self_attn(self.pre_norm(src)))
         src = self.norm1(src)
-        
+
         # Original
         # src2 = self.linear2(self.dropout1(self.activation(self.linear1(src))))
         # src = src + self.drop_path(self.dropout2(src2))
         # return src
-        
+
         # Updated feed-forward path
         src_intermediate = self.activation(self.linear1(src))
-        src2 = self.linear3(self.dropout1(self.activation(self.linear2(src_intermediate))))
+        src2 = self.linear3(
+            self.dropout1(self.activation(self.linear2(src_intermediate)))
+        )
         src = src + self.drop_path(self.dropout2(src2))
         return src
+
 
 class TransformerEncoderLayerFactorizedTempScaleAttn(Module):
-    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
-                 attention_dropout=0.1, drop_path_rate=0.1, dim_reduc_factor=2):
+    def __init__(
+        self,
+        d_model,
+        nhead,
+        dim_feedforward=2048,
+        dropout=0.1,
+        attention_dropout=0.1,
+        drop_path_rate=0.1,
+        dim_reduc_factor=2,
+    ):
         super(TransformerEncoderLayerFactorizedTempScaleAttn, self).__init__()
         self.pre_norm = LayerNorm(d_model)
-        self.self_attn = AttentionTempScaled(dim=d_model, num_heads=nhead,
-                                   attention_dropout=attention_dropout, projection_dropout=dropout)
+        self.self_attn = AttentionTempScaled(
+            dim=d_model,
+            num_heads=nhead,
+            attention_dropout=attention_dropout,
+            projection_dropout=dropout,
+        )
 
         # Original:
         # self.linear1 = Linear(d_model, dim_feedforward)
@@ -405,15 +529,14 @@ class TransformerEncoderLayerFactorizedTempScaleAttn(Module):
         # self.norm1 = LayerNorm(d_model)
         # self.linear2 = Linear(dim_feedforward, d_model)
         # self.dropout2 = Dropout(dropout)
-        
+
         # Factorized feedforward layers
         self.linear1 = Linear(d_model, d_model // dim_reduc_factor)
         self.dropout1 = Dropout(dropout)
         self.norm1 = LayerNorm(d_model)
         self.linear2 = Linear(d_model // dim_reduc_factor, dim_feedforward)
         self.linear3 = Linear(dim_feedforward, d_model)
-        
-        
+
         self.dropout2 = Dropout(dropout)
 
         self.drop_path = DropPath(drop_path_rate) if drop_path_rate > 0 else Identity()
@@ -423,73 +546,93 @@ class TransformerEncoderLayerFactorizedTempScaleAttn(Module):
     def forward(self, src: torch.Tensor, *args, **kwargs) -> torch.Tensor:
         src = src + self.drop_path(self.self_attn(self.pre_norm(src)))
         src = self.norm1(src)
-        
+
         # Original
         # src2 = self.linear2(self.dropout1(self.activation(self.linear1(src))))
         # src = src + self.drop_path(self.dropout2(src2))
         # return src
-        
+
         # Updated feed-forward path
         src_intermediate = self.activation(self.linear1(src))
-        src2 = self.linear3(self.dropout1(self.activation(self.linear2(src_intermediate))))
+        src2 = self.linear3(
+            self.dropout1(self.activation(self.linear2(src_intermediate)))
+        )
         src = src + self.drop_path(self.dropout2(src2))
         return src
-
 
 
 class TransformerClassifierFactorized(Module):
-    def __init__(self,
-                 seq_pool=True,
-                 embedding_dim=768,
-                 num_layers=12,
-                 num_heads=12,
-                 mlp_ratio=4.0,
-                 num_classes=1000,
-                 dropout=0.1,
-                 attention_dropout=0.1,
-                 stochastic_depth=0.1,
-                 positional_embedding='learnable',
-                 sequence_length=None,
-                 dim_reduc_factor=2):
+    def __init__(
+        self,
+        seq_pool=True,
+        embedding_dim=768,
+        num_layers=12,
+        num_heads=12,
+        mlp_ratio=4.0,
+        num_classes=1000,
+        dropout=0.1,
+        attention_dropout=0.1,
+        stochastic_depth=0.1,
+        positional_embedding="learnable",
+        sequence_length=None,
+        dim_reduc_factor=2,
+    ):
         super().__init__()
-        positional_embedding = positional_embedding if \
-            positional_embedding in ['sine', 'learnable', 'none'] else 'sine'
+        positional_embedding = (
+            positional_embedding
+            if positional_embedding in ["sine", "learnable", "none"]
+            else "sine"
+        )
         dim_feedforward = int(embedding_dim * mlp_ratio)
         self.embedding_dim = embedding_dim
         self.sequence_length = sequence_length
         self.seq_pool = seq_pool
         self.num_tokens = 0
 
-        assert sequence_length is not None or positional_embedding == 'none', \
-            f"Positional embedding is set to {positional_embedding} and" \
+        assert sequence_length is not None or positional_embedding == "none", (
+            f"Positional embedding is set to {positional_embedding} and"
             f" the sequence length was not specified."
+        )
 
         if not seq_pool:
             sequence_length += 1
-            self.class_emb = Parameter(torch.zeros(1, 1, self.embedding_dim),
-                                       requires_grad=True)
+            self.class_emb = Parameter(
+                torch.zeros(1, 1, self.embedding_dim), requires_grad=True
+            )
             self.num_tokens = 1
         else:
             self.attention_pool = Linear(self.embedding_dim, 1)
 
-        if positional_embedding != 'none':
-            if positional_embedding == 'learnable':
-                self.positional_emb = Parameter(torch.zeros(1, sequence_length, embedding_dim),
-                                                requires_grad=True)
+        if positional_embedding != "none":
+            if positional_embedding == "learnable":
+                self.positional_emb = Parameter(
+                    torch.zeros(1, sequence_length, embedding_dim), requires_grad=True
+                )
                 init.trunc_normal_(self.positional_emb, std=0.2)
             else:
-                self.positional_emb = Parameter(self.sinusoidal_embedding(sequence_length, embedding_dim),
-                                                requires_grad=False)
+                self.positional_emb = Parameter(
+                    self.sinusoidal_embedding(sequence_length, embedding_dim),
+                    requires_grad=False,
+                )
         else:
             self.positional_emb = None
 
         self.dropout = Dropout(p=dropout)
         dpr = [x.item() for x in torch.linspace(0, stochastic_depth, num_layers)]
-        self.blocks = ModuleList([
-            TransformerEncoderLayerFactorized(d_model=embedding_dim, nhead=num_heads,
-                                    dim_feedforward=dim_feedforward, dropout=dropout,
-                                    attention_dropout=attention_dropout, drop_path_rate=dpr[i],dim_reduc_factor=dim_reduc_factor)
-            for i in range(num_layers)])
+        self.blocks = ModuleList(
+            [
+                TransformerEncoderLayerFactorized(
+                    d_model=embedding_dim,
+                    nhead=num_heads,
+                    dim_feedforward=dim_feedforward,
+                    dropout=dropout,
+                    attention_dropout=attention_dropout,
+                    drop_path_rate=dpr[i],
+                    dim_reduc_factor=dim_reduc_factor,
+                )
+                for i in range(num_layers)
+            ]
+        )
         self.norm = LayerNorm(embedding_dim)
 
         self.fc = Linear(embedding_dim, num_classes)
@@ -497,7 +640,9 @@ class TransformerClassifierFactorized(Module):
 
     def forward(self, x):
         if self.positional_emb is None and x.size(1) < self.sequence_length:
-            x = F.pad(x, (0, 0, 0, self.n_channels - x.size(1)), mode='constant', value=0)
+            x = F.pad(
+                x, (0, 0, 0, self.n_channels - x.size(1)), mode="constant", value=0
+            )
 
         if not self.seq_pool:
             cls_token = self.class_emb.expand(x.shape[0], -1, -1)
@@ -508,21 +653,23 @@ class TransformerClassifierFactorized(Module):
 
         x = self.dropout(x)
 
-        # OLD CODE 
+        # OLD CODE
         for blk in self.blocks:
             x = blk(x)
-        
+
         # NEW CODE: LAYERWISE RESIDUALS
         # for idx, blk in enumerate(self.blocks):
         #     x = blk(x)
         #     if idx < len(self.blocks) - 1:
         #         x = x + x_prev
         #     x_prev = x
-        
+
         x = self.norm(x)
 
         if self.seq_pool:
-            x = torch.matmul(F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x).squeeze(-2)
+            x = torch.matmul(
+                F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x
+            ).squeeze(-2)
         else:
             x = x[:, 0]
 
@@ -532,7 +679,7 @@ class TransformerClassifierFactorized(Module):
     @staticmethod
     def init_weight(m):
         if isinstance(m, Linear):
-            init.trunc_normal_(m.weight, std=.02)
+            init.trunc_normal_(m.weight, std=0.02)
             if isinstance(m, Linear) and m.bias is not None:
                 init.constant_(m.bias, 0)
         elif isinstance(m, LayerNorm):
@@ -541,8 +688,12 @@ class TransformerClassifierFactorized(Module):
 
     @staticmethod
     def sinusoidal_embedding(n_channels, dim):
-        pe = torch.FloatTensor([[p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
-                                for p in range(n_channels)])
+        pe = torch.FloatTensor(
+            [
+                [p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
+                for p in range(n_channels)
+            ]
+        )
         pe[:, 0::2] = torch.sin(pe[:, 0::2])
         pe[:, 1::2] = torch.cos(pe[:, 1::2])
         return pe.unsqueeze(0)
@@ -554,68 +705,86 @@ class DynamicPositionalEmbedding(Module):
         self.mlp = torch.nn.Sequential(
             torch.nn.Linear(embedding_dim, embedding_dim),
             torch.nn.ReLU(),
-            torch.nn.Linear(embedding_dim, embedding_dim)
+            torch.nn.Linear(embedding_dim, embedding_dim),
         )
+
     def forward(self, x):
         return x + self.mlp(x)
 
 
-
 # With Dynamic Embedding
 class TransformerClassifierDynEmbed(Module):
-    def __init__(self,
-                 seq_pool=True,
-                 embedding_dim=768,
-                 num_layers=12,
-                 num_heads=12,
-                 mlp_ratio=4.0,
-                 num_classes=1000,
-                 dropout=0.1,
-                 attention_dropout=0.1,
-                 stochastic_depth=0.1,
-                 positional_embedding='learnable',
-                 sequence_length=None):
+    def __init__(
+        self,
+        seq_pool=True,
+        embedding_dim=768,
+        num_layers=12,
+        num_heads=12,
+        mlp_ratio=4.0,
+        num_classes=1000,
+        dropout=0.1,
+        attention_dropout=0.1,
+        stochastic_depth=0.1,
+        positional_embedding="learnable",
+        sequence_length=None,
+    ):
         super().__init__()
-        positional_embedding = positional_embedding if \
-            positional_embedding in ['sine', 'learnable', 'none'] else 'sine'
+        positional_embedding = (
+            positional_embedding
+            if positional_embedding in ["sine", "learnable", "none"]
+            else "sine"
+        )
         dim_feedforward = int(embedding_dim * mlp_ratio)
         self.embedding_dim = embedding_dim
         self.sequence_length = sequence_length
         self.seq_pool = seq_pool
         self.num_tokens = 0
 
-        assert sequence_length is not None or positional_embedding == 'none', \
-            f"Positional embedding is set to {positional_embedding} and" \
+        assert sequence_length is not None or positional_embedding == "none", (
+            f"Positional embedding is set to {positional_embedding} and"
             f" the sequence length was not specified."
+        )
 
         if not seq_pool:
             sequence_length += 1
-            self.class_emb = Parameter(torch.zeros(1, 1, self.embedding_dim),
-                                       requires_grad=True)
+            self.class_emb = Parameter(
+                torch.zeros(1, 1, self.embedding_dim), requires_grad=True
+            )
             self.num_tokens = 1
         else:
             self.attention_pool = Linear(self.embedding_dim, 1)
 
-        if positional_embedding != 'none':
-            if positional_embedding == 'learnable':
-                self.positional_emb = Parameter(torch.zeros(1, sequence_length, embedding_dim),
-                                                requires_grad=True)
+        if positional_embedding != "none":
+            if positional_embedding == "learnable":
+                self.positional_emb = Parameter(
+                    torch.zeros(1, sequence_length, embedding_dim), requires_grad=True
+                )
                 init.trunc_normal_(self.positional_emb, std=0.2)
                 # Here we introduce the dynamic positional embedding
                 self.dynamic_positional_emb = DynamicPositionalEmbedding(embedding_dim)
             else:
-                self.positional_emb = Parameter(self.sinusoidal_embedding(sequence_length, embedding_dim),
-                                                requires_grad=False)
+                self.positional_emb = Parameter(
+                    self.sinusoidal_embedding(sequence_length, embedding_dim),
+                    requires_grad=False,
+                )
         else:
             self.positional_emb = None
 
         self.dropout = Dropout(p=dropout)
         dpr = [x.item() for x in torch.linspace(0, stochastic_depth, num_layers)]
-        self.blocks = ModuleList([
-            TransformerEncoderLayer(d_model=embedding_dim, nhead=num_heads,
-                                    dim_feedforward=dim_feedforward, dropout=dropout,
-                                    attention_dropout=attention_dropout, drop_path_rate=dpr[i])
-            for i in range(num_layers)])
+        self.blocks = ModuleList(
+            [
+                TransformerEncoderLayer(
+                    d_model=embedding_dim,
+                    nhead=num_heads,
+                    dim_feedforward=dim_feedforward,
+                    dropout=dropout,
+                    attention_dropout=attention_dropout,
+                    drop_path_rate=dpr[i],
+                )
+                for i in range(num_layers)
+            ]
+        )
         self.norm = LayerNorm(embedding_dim)
 
         self.fc = Linear(embedding_dim, num_classes)
@@ -623,7 +792,9 @@ class TransformerClassifierDynEmbed(Module):
 
     def forward(self, x):
         if self.positional_emb is None and x.size(1) < self.sequence_length:
-            x = F.pad(x, (0, 0, 0, self.n_channels - x.size(1)), mode='constant', value=0)
+            x = F.pad(
+                x, (0, 0, 0, self.n_channels - x.size(1)), mode="constant", value=0
+            )
 
         if not self.seq_pool:
             cls_token = self.class_emb.expand(x.shape[0], -1, -1)
@@ -631,15 +802,17 @@ class TransformerClassifierDynEmbed(Module):
 
         if self.positional_emb is not None:
             x += self.positional_emb
-            if hasattr(self, 'dynamic_positional_emb'):  # check if dynamic positional embedding is present
+            if hasattr(
+                self, "dynamic_positional_emb"
+            ):  # check if dynamic positional embedding is present
                 x = self.dynamic_positional_emb(x)
 
         x = self.dropout(x)
 
-        # OLD CODE 
+        # OLD CODE
         for blk in self.blocks:
             x = blk(x)
-        
+
         # NEW CODE: LAYERWISE RESIDUALS
         # prev_outputs = []
         # for blk in self.blocks:
@@ -651,7 +824,9 @@ class TransformerClassifierDynEmbed(Module):
         x = self.norm(x)
 
         if self.seq_pool:
-            x = torch.matmul(F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x).squeeze(-2)
+            x = torch.matmul(
+                F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x
+            ).squeeze(-2)
         else:
             x = x[:, 0]
 
@@ -661,7 +836,7 @@ class TransformerClassifierDynEmbed(Module):
     @staticmethod
     def init_weight(m):
         if isinstance(m, Linear):
-            init.trunc_normal_(m.weight, std=.02)
+            init.trunc_normal_(m.weight, std=0.02)
             if isinstance(m, Linear) and m.bias is not None:
                 init.constant_(m.bias, 0)
         elif isinstance(m, LayerNorm):
@@ -670,14 +845,17 @@ class TransformerClassifierDynEmbed(Module):
 
     @staticmethod
     def sinusoidal_embedding(n_channels, dim):
-        pe = torch.FloatTensor([[p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
-                                for p in range(n_channels)])
+        pe = torch.FloatTensor(
+            [
+                [p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
+                for p in range(n_channels)
+            ]
+        )
         pe[:, 0::2] = torch.sin(pe[:, 0::2])
         pe[:, 1::2] = torch.cos(pe[:, 1::2])
         return pe.unsqueeze(0)
-    
 
-    
+
 class AttentionTempScaled(Module):
     """
     Obtained from timm: github.com:rwightman/pytorch-image-models
@@ -688,7 +866,7 @@ class AttentionTempScaled(Module):
         super().__init__()
         self.num_heads = num_heads
         head_dim = dim // self.num_heads
-        self.scale = head_dim ** -0.5
+        self.scale = head_dim**-0.5
 
         self.qkv = Linear(dim, dim * 3, bias=False)
         self.attn_drop = Dropout(attention_dropout)
@@ -698,7 +876,11 @@ class AttentionTempScaled(Module):
 
     def forward(self, x):
         B, N, C = x.shape
-        qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        qkv = (
+            self.qkv(x)
+            .reshape(B, N, 3, self.num_heads, C // self.num_heads)
+            .permute(2, 0, 3, 1, 4)
+        )
         q, k, v = qkv[0], qkv[1], qkv[2]
 
         attn = (q @ k.transpose(-2, -1)) * self.scale
@@ -709,14 +891,26 @@ class AttentionTempScaled(Module):
         x = self.proj(x)
         x = self.proj_drop(x)
         return x
-    
+
+
 class TransformerEncoderLayerTempScaleAttn(Module):
-    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1,
-                 attention_dropout=0.1, drop_path_rate=0.1):
+    def __init__(
+        self,
+        d_model,
+        nhead,
+        dim_feedforward=2048,
+        dropout=0.1,
+        attention_dropout=0.1,
+        drop_path_rate=0.1,
+    ):
         super(TransformerEncoderLayerTempScaleAttn, self).__init__()
         self.pre_norm = LayerNorm(d_model)
-        self.self_attn = AttentionTempScaled(dim=d_model, num_heads=nhead,
-                                   attention_dropout=attention_dropout, projection_dropout=dropout)
+        self.self_attn = AttentionTempScaled(
+            dim=d_model,
+            num_heads=nhead,
+            attention_dropout=attention_dropout,
+            projection_dropout=dropout,
+        )
 
         self.linear1 = Linear(d_model, dim_feedforward)
         self.dropout1 = Dropout(dropout)
@@ -734,64 +928,82 @@ class TransformerEncoderLayerTempScaleAttn(Module):
         src2 = self.linear2(self.dropout1(self.activation(self.linear1(src))))
         src = src + self.drop_path(self.dropout2(src2))
         return src
-    
+
 
 # With Dynamic Embedding and Temp-Scaled Attn
 class TransformerClassifierDynEmbedTempScaleAttn(Module):
-    def __init__(self,
-                 seq_pool=True,
-                 embedding_dim=768,
-                 num_layers=12,
-                 num_heads=12,
-                 mlp_ratio=4.0,
-                 num_classes=1000,
-                 dropout=0.1,
-                 attention_dropout=0.1,
-                 stochastic_depth=0.1,
-                 positional_embedding='learnable',
-                 sequence_length=None,
-                 dim_reduc_factor=2):
+    def __init__(
+        self,
+        seq_pool=True,
+        embedding_dim=768,
+        num_layers=12,
+        num_heads=12,
+        mlp_ratio=4.0,
+        num_classes=1000,
+        dropout=0.1,
+        attention_dropout=0.1,
+        stochastic_depth=0.1,
+        positional_embedding="learnable",
+        sequence_length=None,
+        dim_reduc_factor=2,
+    ):
         super().__init__()
-        positional_embedding = positional_embedding if \
-            positional_embedding in ['sine', 'learnable', 'none'] else 'sine'
+        positional_embedding = (
+            positional_embedding
+            if positional_embedding in ["sine", "learnable", "none"]
+            else "sine"
+        )
         dim_feedforward = int(embedding_dim * mlp_ratio)
         self.embedding_dim = embedding_dim
         self.sequence_length = sequence_length
         self.seq_pool = seq_pool
         self.num_tokens = 0
 
-        assert sequence_length is not None or positional_embedding == 'none', \
-            f"Positional embedding is set to {positional_embedding} and" \
+        assert sequence_length is not None or positional_embedding == "none", (
+            f"Positional embedding is set to {positional_embedding} and"
             f" the sequence length was not specified."
+        )
 
         if not seq_pool:
             sequence_length += 1
-            self.class_emb = Parameter(torch.zeros(1, 1, self.embedding_dim),
-                                       requires_grad=True)
+            self.class_emb = Parameter(
+                torch.zeros(1, 1, self.embedding_dim), requires_grad=True
+            )
             self.num_tokens = 1
         else:
             self.attention_pool = Linear(self.embedding_dim, 1)
 
-        if positional_embedding != 'none':
-            if positional_embedding == 'learnable':
-                self.positional_emb = Parameter(torch.zeros(1, sequence_length, embedding_dim),
-                                                requires_grad=True)
+        if positional_embedding != "none":
+            if positional_embedding == "learnable":
+                self.positional_emb = Parameter(
+                    torch.zeros(1, sequence_length, embedding_dim), requires_grad=True
+                )
                 init.trunc_normal_(self.positional_emb, std=0.2)
                 # Here we introduce the dynamic positional embedding
                 self.dynamic_positional_emb = DynamicPositionalEmbedding(embedding_dim)
             else:
-                self.positional_emb = Parameter(self.sinusoidal_embedding(sequence_length, embedding_dim),
-                                                requires_grad=False)
+                self.positional_emb = Parameter(
+                    self.sinusoidal_embedding(sequence_length, embedding_dim),
+                    requires_grad=False,
+                )
         else:
             self.positional_emb = None
 
         self.dropout = Dropout(p=dropout)
         dpr = [x.item() for x in torch.linspace(0, stochastic_depth, num_layers)]
-        self.blocks = ModuleList([
-            TransformerEncoderLayerTempScaleAttn(d_model=embedding_dim, nhead=num_heads,
-                                    dim_feedforward=dim_feedforward, dropout=dropout,
-                                    attention_dropout=attention_dropout, drop_path_rate=dpr[i])
-            for i in range(num_layers)])
+        self.blocks = ModuleList(
+            [
+                TransformerEncoderLayerTempScaleAttn(
+                    d_model=embedding_dim,
+                    nhead=num_heads,
+                    dim_feedforward=dim_feedforward,
+                    dropout=dropout,
+                    attention_dropout=attention_dropout,
+                    drop_path_rate=dpr[i],
+                )
+                for i in range(num_layers)
+            ]
+        )
         self.norm = LayerNorm(embedding_dim)
 
         self.fc = Linear(embedding_dim, num_classes)
@@ -799,7 +1011,9 @@ class TransformerClassifierDynEmbedTempScaleAttn(Module):
 
     def forward(self, x):
         if self.positional_emb is None and x.size(1) < self.sequence_length:
-            x = F.pad(x, (0, 0, 0, self.n_channels - x.size(1)), mode='constant', value=0)
+            x = F.pad(
+                x, (0, 0, 0, self.n_channels - x.size(1)), mode="constant", value=0
+            )
 
         if not self.seq_pool:
             cls_token = self.class_emb.expand(x.shape[0], -1, -1)
@@ -807,19 +1021,23 @@ class TransformerClassifierDynEmbedTempScaleAttn(Module):
 
         if self.positional_emb is not None:
             x += self.positional_emb
-            if hasattr(self, 'dynamic_positional_emb'):  # check if dynamic positional embedding is present
+            if hasattr(
+                self, "dynamic_positional_emb"
+            ):  # check if dynamic positional embedding is present
                 x = self.dynamic_positional_emb(x)
 
         x = self.dropout(x)
 
-        # OLD CODE 
+        # OLD CODE
         for blk in self.blocks:
             x = blk(x)
 
         x = self.norm(x)
 
         if self.seq_pool:
-            x = torch.matmul(F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x).squeeze(-2)
+            x = torch.matmul(
+                F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x
+            ).squeeze(-2)
         else:
             x = x[:, 0]
 
@@ -829,7 +1047,7 @@ class TransformerClassifierDynEmbedTempScaleAttn(Module):
     @staticmethod
     def init_weight(m):
         if isinstance(m, Linear):
-            init.trunc_normal_(m.weight, std=.02)
+            init.trunc_normal_(m.weight, std=0.02)
             if isinstance(m, Linear) and m.bias is not None:
                 init.constant_(m.bias, 0)
         elif isinstance(m, LayerNorm):
@@ -838,69 +1056,92 @@ class TransformerClassifierDynEmbedTempScaleAttn(Module):
 
     @staticmethod
     def sinusoidal_embedding(n_channels, dim):
-        pe = torch.FloatTensor([[p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
-                                for p in range(n_channels)])
+        pe = torch.FloatTensor(
+            [
+                [p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
+                for p in range(n_channels)
+            ]
+        )
         pe[:, 0::2] = torch.sin(pe[:, 0::2])
         pe[:, 1::2] = torch.cos(pe[:, 1::2])
         return pe.unsqueeze(0)
+
 
 # With Dynamic Embedding and Temp Scale Attention and Factorisation
 class TransformerClassifierDynEmbedTempScaleAttnFactor(Module):
-    def __init__(self,
-                 seq_pool=True,
-                 embedding_dim=768,
-                 num_layers=12,
-                 num_heads=12,
-                 mlp_ratio=4.0,
-                 num_classes=1000,
-                 dropout=0.1,
-                 attention_dropout=0.1,
-                 stochastic_depth=0.1,
-                 positional_embedding='learnable',
-                 sequence_length=None,
-                 dim_reduc_factor=2):
+    def __init__(
+        self,
+        seq_pool=True,
+        embedding_dim=768,
+        num_layers=12,
+        num_heads=12,
+        mlp_ratio=4.0,
+        num_classes=1000,
+        dropout=0.1,
+        attention_dropout=0.1,
+        stochastic_depth=0.1,
+        positional_embedding="learnable",
+        sequence_length=None,
+        dim_reduc_factor=2,
+    ):
         super().__init__()
-        positional_embedding = positional_embedding if \
-            positional_embedding in ['sine', 'learnable', 'none'] else 'sine'
+        positional_embedding = (
+            positional_embedding
+            if positional_embedding in ["sine", "learnable", "none"]
+            else "sine"
+        )
         dim_feedforward = int(embedding_dim * mlp_ratio)
         self.embedding_dim = embedding_dim
         self.sequence_length = sequence_length
         self.seq_pool = seq_pool
         self.num_tokens = 0
 
-        assert sequence_length is not None or positional_embedding == 'none', \
-            f"Positional embedding is set to {positional_embedding} and" \
+        assert sequence_length is not None or positional_embedding == "none", (
+            f"Positional embedding is set to {positional_embedding} and"
             f" the sequence length was not specified."
+        )
 
         if not seq_pool:
             sequence_length += 1
-            self.class_emb = Parameter(torch.zeros(1, 1, self.embedding_dim),
-                                       requires_grad=True)
+            self.class_emb = Parameter(
+                torch.zeros(1, 1, self.embedding_dim), requires_grad=True
+            )
             self.num_tokens = 1
         else:
             self.attention_pool = Linear(self.embedding_dim, 1)
 
-        if positional_embedding != 'none':
-            if positional_embedding == 'learnable':
-                self.positional_emb = Parameter(torch.zeros(1, sequence_length, embedding_dim),
-                                                requires_grad=True)
+        if positional_embedding != "none":
+            if positional_embedding == "learnable":
+                self.positional_emb = Parameter(
+                    torch.zeros(1, sequence_length, embedding_dim), requires_grad=True
+                )
                 init.trunc_normal_(self.positional_emb, std=0.2)
                 # Here we introduce the dynamic positional embedding
                 self.dynamic_positional_emb = DynamicPositionalEmbedding(embedding_dim)
             else:
-                self.positional_emb = Parameter(self.sinusoidal_embedding(sequence_length, embedding_dim),
-                                                requires_grad=False)
+                self.positional_emb = Parameter(
+                    self.sinusoidal_embedding(sequence_length, embedding_dim),
+                    requires_grad=False,
+                )
         else:
             self.positional_emb = None
 
         self.dropout = Dropout(p=dropout)
         dpr = [x.item() for x in torch.linspace(0, stochastic_depth, num_layers)]
-        self.blocks = ModuleList([
-            TransformerEncoderLayerFactorizedTempScaleAttn(d_model=embedding_dim, nhead=num_heads,
-                                    dim_feedforward=dim_feedforward, dropout=dropout,
-                                    attention_dropout=attention_dropout, drop_path_rate=dpr[i],
-                                    dim_reduc_factor=dim_reduc_factor)
-            for i in range(num_layers)])
+        self.blocks = ModuleList(
+            [
+                TransformerEncoderLayerFactorizedTempScaleAttn(
+                    d_model=embedding_dim,
+                    nhead=num_heads,
+                    dim_feedforward=dim_feedforward,
+                    dropout=dropout,
+                    attention_dropout=attention_dropout,
+                    drop_path_rate=dpr[i],
+                    dim_reduc_factor=dim_reduc_factor,
+                )
+                for i in range(num_layers)
+            ]
+        )
         self.norm = LayerNorm(embedding_dim)
 
         self.fc = Linear(embedding_dim, num_classes)
@@ -908,7 +1149,9 @@ class TransformerClassifierDynEmbedTempScaleAttnFactor(Module):
 
     def forward(self, x):
         if self.positional_emb is None and x.size(1) < self.sequence_length:
-            x = F.pad(x, (0, 0, 0, self.n_channels - x.size(1)), mode='constant', value=0)
+            x = F.pad(
+                x, (0, 0, 0, self.n_channels - x.size(1)), mode="constant", value=0
+            )
 
         if not self.seq_pool:
             cls_token = self.class_emb.expand(x.shape[0], -1, -1)
@@ -916,19 +1159,23 @@ class TransformerClassifierDynEmbedTempScaleAttnFactor(Module):
 
         if self.positional_emb is not None:
             x += self.positional_emb
-            if hasattr(self, 'dynamic_positional_emb'):  # check if dynamic positional embedding is present
+            if hasattr(
+                self, "dynamic_positional_emb"
+            ):  # check if dynamic positional embedding is present
                 x = self.dynamic_positional_emb(x)
 
         x = self.dropout(x)
 
-        # OLD CODE 
+        # OLD CODE
         for blk in self.blocks:
             x = blk(x)
 
         x = self.norm(x)
 
         if self.seq_pool:
-            x = torch.matmul(F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x).squeeze(-2)
+            x = torch.matmul(
+                F.softmax(self.attention_pool(x), dim=1).transpose(-1, -2), x
+            ).squeeze(-2)
         else:
             x = x[:, 0]
 
@@ -938,7 +1185,7 @@ class TransformerClassifierDynEmbedTempScaleAttnFactor(Module):
     @staticmethod
     def init_weight(m):
         if isinstance(m, Linear):
-            init.trunc_normal_(m.weight, std=.02)
+            init.trunc_normal_(m.weight, std=0.02)
             if isinstance(m, Linear) and m.bias is not None:
                 init.constant_(m.bias, 0)
         elif isinstance(m, LayerNorm):
@@ -947,9 +1194,65 @@ class TransformerClassifierDynEmbedTempScaleAttnFactor(Module):
 
     @staticmethod
     def sinusoidal_embedding(n_channels, dim):
-        pe = torch.FloatTensor([[p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
-                                for p in range(n_channels)])
+        pe = torch.FloatTensor(
+            [
+                [p / (10000 ** (2 * (i // 2) / dim)) for i in range(dim)]
+                for p in range(n_channels)
+            ]
+        )
         pe[:, 0::2] = torch.sin(pe[:, 0::2])
         pe[:, 1::2] = torch.cos(pe[:, 1::2])
         return pe.unsqueeze(0)
-    
+
+
+# Adapters
+class AdapterModule(Module):
+    def __init__(self, input_size, adapter_size):
+        super(AdapterModule, self).__init__()
+        self.down = Linear(input_size, adapter_size)
+        self.activation = torch.nn.ReLU()
+        self.up = Linear(adapter_size, input_size)
+
+    def forward(self, x):
+        return x + self.up(self.activation(self.down(x)))
+
+
+class TransformerEncoderLayerWithAdapter(Module):
+    def __init__(
+        self,
+        d_model,
+        nhead,
+        dim_feedforward=2048,
+        dropout=0.1,
+        attention_dropout=0.1,
+        drop_path_rate=0.1,
+        adapter_size=128,
+    ):
+        super(TransformerEncoderLayerWithAdapter, self).__init__()
+        self.pre_norm = LayerNorm(d_model)
+        self.self_attn = Attention(
+            dim=d_model,
+            num_heads=nhead,
+            attention_dropout=attention_dropout,
+            projection_dropout=dropout,
+        )
+
+        self.linear1 = Linear(d_model, dim_feedforward)
+        self.dropout1 = Dropout(dropout)
+        self.norm1 = LayerNorm(d_model)
+        self.linear2 = Linear(dim_feedforward, d_model)
+        self.dropout2 = Dropout(dropout)
+
+        self.drop_path = DropPath(drop_path_rate) if drop_path_rate > 0 else Identity()
+
+        self.adapter = AdapterModule(d_model, adapter_size)
+
+        self.activation = F.gelu
+
+    def forward(self, src: torch.Tensor, *args, **kwargs) -> torch.Tensor:
+        src = src + self.drop_path(self.self_attn(self.pre_norm(src)))
+        src = self.norm1(src)
+        src = src + self.adapter(src)
+        src2 = self.linear2(self.dropout1(self.activation(self.linear1(src))))
+        src = src + self.drop_path(self.dropout2(src2))
+        return src
