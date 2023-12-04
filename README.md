@@ -20,15 +20,17 @@ Jared Lim (1005200) <br>
 
 1. `train.py` - main training script; largely unchanged from the original repository
 2. `viz_eval.ipynb` - notebook to visualise and evaluate results
-3. `src/cct.py` - contains the original and custom CCT model initialisation functions
-4. `src/utils/transformers.py` - contains the original and custom modules used in the CCT model
-5. `src/utils/tokenizer.py` - contains the original and custom tokeniser functions
-6. `configs/custom/cifar10_no_amp.yml` and `configs/custom/cifar100_no_amp.yml` - contains the config for all the evaluated models
-7. `macs_counter.ipynb` - notebook to calculate the number of parameters and MACs of the models
+3. `gradio_demo_v2.ipynb` - notebook to run the gradio demo
+4. `src/cct.py` - contains the original and custom CCT model initialisation functions
+5. `src/utils/transformers.py` - contains the original and custom modules used in the CCT model
+6. `src/utils/tokenizer.py` - contains the original and custom tokeniser functions
+7. `configs/custom/cifar10_no_amp.yml` and `configs/custom/cifar100_no_amp.yml` - contains the config for all the evaluated models
+8. `macs_counter.ipynb` - notebook to calculate the number of parameters and MACs of the models
 
 ## Visualisation/Evaluation
-- Download the 8GB [results file here](https://drive.google.com/file/d/1PfQ78J8LvG0ptWzOiBanSNpcqyj8WeZa/view?usp=sharing) and unzip `result_final.7z`. Place the `result_final` folder in the root directory of this repository. This folder contains the results and checkpoints of all the models we trained.
+- Download the 8GB [results file here](https://drive.google.com/file/d/1X9sribJdhdlttD4MDfaMHMbpsPynzUXh/view?usp=sharing) and unzip `result_final.7z`. Place the `result_final` folder in the root directory of this repository. This folder contains the results and checkpoints of all the models we trained.
 - Run `viz_eval.ipynb` to visualise and evaluate the results.
+- Run `gradio_demo_v2.ipynb` to run the gradio demo for your own images.
 
 
 ## Training
