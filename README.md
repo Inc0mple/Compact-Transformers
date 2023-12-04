@@ -9,8 +9,21 @@ Hung Chia-Yu (1005330) <br>
 Mandis Loh (1005297) <br>
 Jared Lim (1005200) <br>
 
+## Environment
 
-## Setup Environment
+### Hardware Used
+- Intel i5-13600K
+- RTX-3090 24GB VRAM
+- 32GB RAM
+- 2TB SSD
+
+### Software Environment
+- Python 3.9.13
+- WSL2 Ubuntu 22.04.2 LTS
+- CUDA Version 12.2
+- NVIDIA Driver Version 537.58
+
+## Setup 
 
 - Clone this repository
 - Create a new conda environment, activate it, and do `pip install -r requirements.txt`
