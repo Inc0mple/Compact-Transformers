@@ -33,7 +33,7 @@ Jared Lim (1005200) <br>
 
 1. `train.py` - main training script; largely unchanged from the original repository
 2. `viz_eval.ipynb` - notebook to visualise and evaluate results
-3. `gradio_demo_v2.ipynb` - notebook to run the gradio demo
+3. `gradio_demo.ipynb` - notebook to run the gradio demo
 4. `src/cct.py` - contains the original and custom CCT model initialisation functions
 5. `src/utils/transformers.py` - contains the original and custom modules used in the CCT model
 6. `src/utils/tokenizer.py` - contains the original and custom tokeniser functions
@@ -43,7 +43,7 @@ Jared Lim (1005200) <br>
 ## Visualisation/Evaluation
 - Download the 8GB [results file here](https://drive.google.com/file/d/1X9sribJdhdlttD4MDfaMHMbpsPynzUXh/view?usp=sharing) and unzip `result_final.7z`. Place the `result_final` folder in the root directory of this repository. This folder contains the results and checkpoints of all the models we trained.
 - Run `viz_eval.ipynb` to visualise and evaluate the results.
-- Run `gradio_demo_v2.ipynb` to run the gradio demo for your own images.
+- Run `gradio_demo.ipynb` to run the gradio demo for your own images.
 
 
 ## Training
