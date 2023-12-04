@@ -113,10 +113,13 @@ def visualize_attention(img, attention_maps):
         axs[i + 1].imshow(attn_map_normalized, cmap='hot', alpha = 0.5 )  # Overlay the attention map
         axs[i + 1].axis('off')
         axs[i + 1].set_title(f'Layer {i + 1} Attention')
+        
+    
 
     buf = io.BytesIO()
-    plt.savefig(buf, format='png')
+    plt.savefig(buf, format='png', bbox_inches='tight')
     buf.seek(0)
+    
     plt.close()
 
     # Convert BytesIO object to a PIL Image

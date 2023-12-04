@@ -33,18 +33,22 @@ Jared Lim (1005200) <br>
 
 1. `train.py` - main training script; largely unchanged from the original repository
 2. `viz_eval.ipynb` - notebook to visualise and evaluate results
-3. `gradio_demo.ipynb` - notebook to run the gradio demo
+3. `gradio_demo.ipynb` - notebook to run the gradio demo which allows you to upload your own images, classify them, and visualise the attention maps.
 4. `src/cct.py` - contains the original and custom CCT model initialisation functions
 5. `src/utils/transformers.py` - contains the original and custom modules used in the CCT model
 6. `src/utils/tokenizer.py` - contains the original and custom tokeniser functions
 7. `configs/custom/cifar10_no_amp.yml` and `configs/custom/cifar100_no_amp.yml` - contains the config for all the evaluated models
 8. `macs_counter.ipynb` - notebook to calculate the number of parameters and MACs of the models
+9. `acc_param_graphs.ipynb` - notebook to plot the accuracy vs number of parameters graphs
 
 ## Visualisation/Evaluation
 - Download the 8GB [results file here](https://drive.google.com/file/d/1X9sribJdhdlttD4MDfaMHMbpsPynzUXh/view?usp=sharing) and unzip `result_final.7z`. Place the `result_final` folder in the root directory of this repository. This folder contains the results and checkpoints of all the models we trained.
-- Run `viz_eval.ipynb` to visualise and evaluate the results.
+- Run `viz_eval.ipynb` to visualise all the results and perform evaluation for individual models.
+- Run `acc_param_graphs.ipynb` to visualise the accuracy vs number of parameters graphs.
 - Run `gradio_demo.ipynb` to run the gradio demo for your own images.
 
+![Gradio Demo](images/gradio_ss.png)
+![All Results](figures/Latex_table.png)
 
 ## Training
 
