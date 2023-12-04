@@ -7,6 +7,7 @@ asttokens==2.4.0
 attrs==23.1.0
 backcall==0.2.0
 backports.functools-lru-cache==1.6.5
+calflops==0.2.9
 certifi==2022.12.7
 charset-normalizer==2.1.1
 click==8.1.7
@@ -109,6 +110,7 @@ torchvision==0.10.0+cu111
 tornado==6.1
 tqdm==4.66.1
 traitlets==5.10.0
+transformers==4.35.2
 triton==2.0.0
 typer==0.9.0
 typing_extensions==4.8.0
