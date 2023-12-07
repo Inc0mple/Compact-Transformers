@@ -5,7 +5,7 @@
 ## Group Members
 Bryan Tan (1004318) <br>
 Christy Lau Jin Yun (1005330) <br>
-Hung Chia-Yu (1005330) <br>
+Hung Chia-Yu (1005603) <br>
 Mandis Loh (1005297) <br>
 Jared Lim (1005200) <br>
 
