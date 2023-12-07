@@ -41,7 +41,7 @@ Jared Lim (1005200) <br>
 8. `macs_counter.ipynb` - notebook to calculate the number of parameters and MACs of the models
 9. `acc_param_graphs.ipynb` - notebook to plot the accuracy vs number of parameters graphs
 
-## Visualisation/Evaluation
+## Visualisation and Evaluation
 - Download the 8GB [results file here](https://drive.google.com/file/d/1X9sribJdhdlttD4MDfaMHMbpsPynzUXh/view?usp=sharing) and unzip `result_final.7z`. Place the `result_final` folder in the root directory of this repository. This folder contains the results and checkpoints of all the models we trained.
 - Run `viz_eval.ipynb` to visualise all the results and perform evaluation for individual models.
 - Run `acc_param_graphs.ipynb` to visualise the accuracy vs number of parameters graphs.
